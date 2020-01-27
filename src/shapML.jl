@@ -1,4 +1,4 @@
-module shapML
+module ShapML
 
 using DataFrames
 using Random
