@@ -1,6 +1,6 @@
-using shapML
+using ShapML
 using Test
 
-@testset "shapML.jl" begin
+@testset "ShapML.jl" begin
     # Write your own tests here.
 end
