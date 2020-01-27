@@ -108,6 +108,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
     # column and coerced to characters.
     data_merge = DataFrames.stack(explain, Symbol.(feature_names))
     rename!(data_merge, Dict(:variable => "feature_name", :value => "feature_value"))
+    data_merge.feature_name = String.(data_merge.feature_name)
 
     data_merge.index = repeat(1:size(explain, 1), n_features)  # The merge index for each instance.
 
