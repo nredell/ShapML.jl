@@ -60,4 +60,5 @@ data_shap = ShapML.shap(explain = explain,
                         )
 
 first(data_shap, 20)
+
 ```
