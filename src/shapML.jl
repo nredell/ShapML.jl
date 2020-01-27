@@ -1,8 +1,9 @@
-#------------------------------------------------------------------------------
 module shapML
 
 using DataFrames
 using Random
+
+include("zzz.jl")  # Load predict_shap().
 
 export shap
 
@@ -60,7 +61,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
             # one or more features to the right of the target to replace with the reference.
             if target_feature_index_shuffled < n_features
               explain_instance_real_target = explain_instance_real_target[:, 1:target_feature_index_shuffled]
-              explain_instance_real_target_fake_features = repeat(DataFrames.DataFrame(reference_instance[(target_feature_index_shuffled + 1):(n_features)]), 5)
+              explain_instance_real_target_fake_features = repeat(DataFrames.DataFrame(reference_instance[(target_feature_index_shuffled + 1):(n_features)]), n_instances)
               explain_instance_real_target = hcat(explain_instance_real_target, explain_instance_real_target_fake_features)
             end
 
@@ -95,6 +96,28 @@ function shap(;explain::DataFrame, reference = nothing, model,
     # a single data.frame for the user-defined predict() function.
     data_predict = vcat(data_sample...)
 
+    data_shap = predict_shap(reference = reference,  # input arg.
+                             data_predict = data_predict,  # Calculated.
+                             model = model,  # input arg.
+                             predict_function = predict_function,  # input arg.
+                             n_features = n_features  # Calculated.
+                             )
+    #--------------------------------------------------------------------------
+    # Melt the input 'explain' data.frame for merging the model features to the Shapley values. Suppress
+    # the warning resulting from any factors and numeric features being combined into one 'feature_value'
+    # column and coerced to characters.
+    data_merge = DataFrames.stack(explain, Symbol.(feature_names))
+    rename!(data_merge, Dict(:variable => "feature_name", :value => "feature_value"))
+
+    data_merge.index = repeat(1:size(explain, 1), n_features)  # The merge index for each instance.
+
+    # Each instance in explain has one Shapley value per instance in a long data.frame format.
+    data_out = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
+
+    # Re-order columns for easier reading.
+    data_out = data_out[:, [:index, :feature_name, :feature_value, :shap_effect, :shap_effect_sd, :intercept]]
+
+    return data_out
+
 end  # End shap().
 end  # End module.
-#------------------------------------------------------------------------------
