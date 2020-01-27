@@ -3,8 +3,12 @@ uuid = "6a3b7dca-267a-4625-bece-0ad21e242edf"
 authors = ["Nickalus Redell"]
 version = "0.1.0"
 
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+
 [compat]
 julia = "1"
+DataFrames = "0.20.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
