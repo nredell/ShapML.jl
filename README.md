@@ -2,6 +2,8 @@
 
 [![Codecov](https://codecov.io/gh/nredell/ShapML.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nredell/ShapML.jl)
 
+[![Build Status](https://travis-ci.org/nredell/ShapML.jl.svg?branch=master)](https://travis-ci.org/nredell/ShapML.jl)
+
 ## Install
 
 ``` julia
