@@ -62,7 +62,7 @@ function predict_function(model, data)
 end
 #------------------------------------------------------------------------------
 # ShapML setup.
-explain = copy(boston[1:300, :]) # Compute Shapley feature-level predictions for 300 instaces.
+explain = copy(boston[1:300, :]) # Compute Shapley feature-level predictions for 300 instances.
 explain = select(explain, Not(Symbol(outcome_name)))  # Remove the outcome column.
 
 reference = copy(boston)  # An optional reference population to compute the baseline prediction.
@@ -72,7 +72,7 @@ sample_size = 60  # Number of Monte Carlo samples.
 #------------------------------------------------------------------------------
 
 data_shap = ShapML.shap(explain = explain,
-                        #reference = reference,
+                        reference = reference,
                         model = model,
                         predict_function = predict_function,
                         sample_size = sample_size

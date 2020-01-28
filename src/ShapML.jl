@@ -61,7 +61,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
             # one or more features to the right of the target to replace with the reference.
             if target_feature_index_shuffled < n_features
               explain_instance_real_target = explain_instance_real_target[:, 1:target_feature_index_shuffled]
-              explain_instance_real_target_fake_features = repeat(DataFrames.DataFrame(reference_instance[(target_feature_index_shuffled + 1):(n_features)]), n_instances)
+              explain_instance_real_target_fake_features = repeat(DataFrames.DataFrame(reference_instance[(target_feature_index_shuffled + 1):(n_features)]), size(explain, 1))
               explain_instance_real_target = hcat(explain_instance_real_target, explain_instance_real_target_fake_features)
             end
 
