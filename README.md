@@ -1,7 +1,26 @@
 # ShapML
 
-[![Codecov](https://codecov.io/gh/nredell/ShapML.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nredell/ShapML.jl)
 [![Build Status](https://travis-ci.org/nredell/ShapML.jl.svg?branch=master)](https://travis-ci.org/nredell/ShapML.jl)
+[![Codecov](https://codecov.io/gh/nredell/ShapML.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nredell/ShapML.jl)
+
+The purpose of `ShapML` is to compute stochastic feature-level Shapley values which
+can be used to (a) interpret and/or (b) assess the fairness of any machine learning model.
+**[Shapley values](https://christophm.github.io/interpretable-ml-book/shapley.html)**
+are an intuitive and theoretically sound model-agnostic diagnostic tool to understand both **global feature importance** across all instances in a data set and instance/row-level **local feature importance** in black-box machine learning models.
+
+This package implements the algorithm described in
+[Štrumbelj and Kononenko's (2014) sampling-based Shapley approximation algorithm](https://link.springer.com/article/10.1007%2Fs10115-013-0679-x)
+to compute the stochastic Shapley values for a given model feature.
+
+* **Flexibility**:
+    + Shapley values can be estimated for <u>any machine learning model</u> using a simple user-defined
+    `predict()` wrapper function.
+
+* **Speed**:
+    + The code itself hasn't necessarily been optimized for speed. The speed advantage of `ShapML`
+    comes in the form of giving the user the ability to <u>select 1 or more target features of interest</u>
+    and avoid having to compute Shapley values for all model features. This is especially
+    useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
 
 ## Install
 
@@ -48,7 +67,6 @@ explain = select(explain, Not(Symbol(outcome_name)))  # Remove the outcome colum
 
 reference = copy(boston)  # An optional reference population to compute the baseline prediction.
 reference = select(reference, Not(Symbol(outcome_name)))
-#reference = reference[1:300, :]
 
 sample_size = 60  # Number of Monte Carlo samples.
 #------------------------------------------------------------------------------
@@ -61,5 +79,5 @@ data_shap = ShapML.shap(explain = explain,
                         )
 
 first(data_shap, 20)
-
 ```
+![](./tools/shap_output.PNG)
