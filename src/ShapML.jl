@@ -33,18 +33,44 @@ Compute stochastic feature-level Shapley values for any ML model.
 function shap(;explain::DataFrame, reference = nothing, model,
     predict_function, target_features = nothing, sample_size::Integer = 60)
 
+    if !isa(predict_function, Function)
+        error(""""predict_function" should be a "Function" object.""")
+    end
+
     feature_names = String.(names(explain))
 
     if (target_features === nothing)
+
         target_features = feature_names  # Default is to explain with all features.
+
+    else
+
+        if !all(isa.(target_features, String))
+            error(""""target_features" should be an array of feature names of type "String".""")
+        end
+
+        if !all([any(occursin.(x, feature_names)) for x in target_features])
+            error("""One or more "target_features" is not in String.(names(explain)).""")
+        end
     end
     #----------------------------------------------------------------------------
     n_features = size(explain, 2)
     #----------------------------------------------------------------------------
     if (reference === nothing)  # Default is to explain all instances in 'explain' without a specific reference group.
+
         reference = copy(explain)
         n_instances = size(reference, 1)
+
     else
+
+        if !isa(reference, DataFrame)
+            error(""""reference" should be a "DataFrame" object.""")
+        end
+
+        if names(explain) != names(reference)
+            error(""""explain" and "reference" should have the same model features and no outcome column.""")
+        end
+
         n_instances = size(reference, 1)
     end
     #----------------------------------------------------------------------------
