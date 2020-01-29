@@ -7,8 +7,31 @@ include("zzz.jl")  # Load predict_shap().
 
 export shap
 
+"""
+    shap(explain::DataFrame, reference = nothing, model,
+         predict_function, target_features = nothing, sample_size::Integer = 60)
+
+Compute stochastic feature-level Shapley values for any ML model.
+
+# Arguments
+- `explain::DataFrame`: A DataFrame of model features with 1 or more instances to be explained using Shapley values.
+- `reference`: Optional. A DataFrame with the same format as `explain` which serves as a reference group against which the Shapley value deviations from `explain` are compared (i.e., the model intercept).
+- `model`: A trained ML model that is passed into `predict_function`.
+- `predict_function`: A wrapper function that takes 2 required positional arguments–(1) the trained model from `model` and (2) a DataFrame of instances with the same format as `explain`. The function should return a 1-column DataFrame of model predictions; the column name does not matter.
+- `target_features`: Optional. A character vector that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
+- `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
+
+# Return
+- A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
+    + `index`: An instance in `explain`.
+    + `feature_name`: Model feature.
+    + `feature_value`: Feature value.
+    + `shap_effect`: The average Shapley value across Monte Carlo samples.
+    + `shap_effect_sd`: The standard deviation of Shapley values across Monte Carlo samples.
+    + `intercept`: The average model prediction from `explain` or `reference`.
+"""
 function shap(;explain::DataFrame, reference = nothing, model,
-    predict_function, target_features = nothing, sample_size = 60)
+    predict_function, target_features = nothing, sample_size::Integer = 60)
 
     feature_names = String.(names(explain))
 
