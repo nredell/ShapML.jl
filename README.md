@@ -1,7 +1,7 @@
-# ShapML
-
 [![Build Status](https://travis-ci.org/nredell/ShapML.jl.svg?branch=master)](https://travis-ci.org/nredell/ShapML.jl)
 [![Codecov](https://codecov.io/gh/nredell/ShapML.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nredell/ShapML.jl)
+
+# ShapML <img src="./tools/ShapML_logo.png" alt="ShapML logo" align="right" height="138.5" style="display: inline-block;">
 
 The purpose of `ShapML` is to compute stochastic feature-level Shapley values which
 can be used to (a) interpret and/or (b) assess the fairness of any machine learning model.
