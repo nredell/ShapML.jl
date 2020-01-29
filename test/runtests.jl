@@ -1,11 +1,9 @@
-@everywhere begin
-  using ShapML
-  using Test
-  using DataFrames
-  using Random
-  using Statistics
-end
+using ShapML
+using Test
+using DataFrames
+using Random
+using Statistics
 
 @testset "shap" begin
-  @test include("shap.jl")
+  include("shap.jl")
 end
