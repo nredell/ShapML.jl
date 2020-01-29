@@ -33,6 +33,7 @@ Pkg.add(PackageSpec(url = "https://github.com/nredell/ShapML.jl"))
 
 ``` julia
 using ShapML
+using Random
 using RDatasets
 using DataFrames
 using MLJ
@@ -46,7 +47,7 @@ outcome_name = "MedV"
 # Data prep.
 y, X = MLJ.unpack(boston, ==(Symbol(outcome_name)), colname -> true)
 
-# Instantiate ML model; choose any single outcome ML model.
+# Instantiate an ML model; choose any single-outcome ML model from any package.
 random_forest = @load RandomForestRegressor pkg = "DecisionTree"
 model = MLJ.machine(random_forest, X, y)
 
@@ -70,7 +71,8 @@ reference = select(reference, Not(Symbol(outcome_name)))
 
 sample_size = 60  # Number of Monte Carlo samples.
 #------------------------------------------------------------------------------
-
+# Compute stochastic Shapley values.
+Random.seed!(224)
 data_shap = ShapML.shap(explain = explain,
                         reference = reference,
                         model = model,
