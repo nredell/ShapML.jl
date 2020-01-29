@@ -1,6 +1,11 @@
-using ShapML
-using Test
+@everywhere begin
+  using ShapML
+  using Test
+  using DataFrames
+  using Random
+  using Statistics
+end
 
-@testset "ShapML.jl" begin
-    # Write your own tests here.
+@testset "shap" begin
+  @test include("shap.jl")
 end
