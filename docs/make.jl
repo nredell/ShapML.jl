@@ -8,3 +8,7 @@ pages = [
     "Introduction" => "index.md",
     ]
 )
+
+deploydocs(
+    repo = "github.com/nredell/ShapML.jl.git",
+)
