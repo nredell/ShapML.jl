@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/nredell/ShapML.jl.svg?branch=master)](https://travis-ci.org/nredell/ShapML.jl)
 [![Codecov](https://codecov.io/gh/nredell/ShapML.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nredell/ShapML.jl)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://nredell.github.io/ShapML.jl/dev)
 
 # ShapML <img src="./tools/ShapML_logo.png" alt="ShapML logo" align="right" height="138.5" style="display: inline-block;">
 
