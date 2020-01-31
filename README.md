@@ -23,12 +23,18 @@ to compute the stochastic Shapley values for a given model feature.
     and avoid having to compute Shapley values for all model features. This is especially
     useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
 
+
 ## Install
 
 ``` julia
 using Pkg
 Pkg.add(PackageSpec(url = "https://github.com/nredell/ShapML.jl"))
 ```
+
+## Documentation and Vignettes
+
+* [Dev version](https://nredell.github.io/ShapML.jl/dev/)
+
 
 ## Example
 

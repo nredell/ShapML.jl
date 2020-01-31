@@ -1,5 +1,4 @@
-Purpose
-=======
+# Purpose
 
 -   The goal of this vignette is to demonstrate how, for the same
     boosted tree prediction model, the stochastic Shapley values from
@@ -14,8 +13,7 @@ Purpose
     results while having the ability to work with all classes of ML
     models.
 
-Setup
-=====
+# Setup
 
 -   Because the tree-based Shapley value algorithm is not currently
     available in `Julia`, we’ll use
@@ -35,11 +33,9 @@ Setup
         objects from step 4.
     6.  `R`: Compare the results.
 
-Example
-=======
+# Example
 
-Load Packages
--------------
+## Load Packages
 
 ### R
 
@@ -78,8 +74,7 @@ using DataFrames
 using RCall
 ```
 
-Load Data in R
---------------
+## Load Data in R
 
 ``` r
 data("data_adult", package = "shapFlex")
@@ -89,8 +84,7 @@ outcome_name <- "income"  # A binary outcome.
 outcome_col <- which(names(data) == outcome_name)
 ```
 
-Train ML Model in R
--------------------
+## Train ML Model in R
 
 -   The accuracy of the model isn’t entirely important because we’re
     interested in comparing Shapley values across algorithms: stochastic
@@ -109,8 +103,7 @@ model_catboost <- catboost.train(data_pool, NULL,
                                                iterations = 30, logging_level = "Silent"))
 ```
 
-Shapley Algorithms
-------------------
+## Shapley Algorithms
 
 -   We’ll explain the same 300 instances with each algorithm.
 
@@ -186,8 +179,7 @@ data_shap = ShapML.shap(explain = explain,
                         )
 ```
 
-Results
--------
+## Results
 
 -   For **10 out of 13 model features**, the **correlation** between the
     stochastic and tree-based Shapley values was **\> .99** and above
@@ -238,5 +230,4 @@ p <- p + theme_bw() + xlab("catboost tree-based Shapley values") + ylab("ShapML 
   theme(axis.title = element_text(face = "bold"))
 p
 ```
-
-<br>
+![](./shap_cor_plot.png)

@@ -1,12 +1,16 @@
 using Documenter, ShapML
 
 makedocs(
-sitename = "ShapML",
-authors = "Nickalus Redell",
-doctest = false,
-pages = [
-    "Introduction" => "index.md",
-    "Vignettes" => Any["Stochastic vs. TreeSHAP" => "man/consistency.md"]
+    sitename = "ShapML",
+    authors = "Nickalus Redell",
+    doctest = false,
+    format = Documenter.HTML(
+        highlights = ["yaml"]
+        ),
+    pages = [
+        "Introduction" => "index.md",
+        "Vignettes" => Any["Stochastic vs. TreeSHAP" => "vignettes/consistency.md"],
+        "Functions" => "functions/functions.md"
     ]
 )
 
