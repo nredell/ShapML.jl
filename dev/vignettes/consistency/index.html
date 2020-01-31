@@ -18,7 +18,7 @@ if (!&quot;catboost&quot; %in% installed.packages()[, &quot;Package&quot;]) {
                         INSTALL_opts = c(&quot;--no-multiarch&quot;))
 }
 
-library(catboost)  # version 0.20</code></pre><h3 id="Julia-1"><a class="docs-heading-anchor" href="#Julia-1">Julia</a><a class="docs-heading-anchor-permalink" href="#Julia-1" title="Permalink"></a></h3><pre><code class="language-none">using ShapML
+library(catboost)  # version 0.20</code></pre><h3 id="Julia-1"><a class="docs-heading-anchor" href="#Julia-1">Julia</a><a class="docs-heading-anchor-permalink" href="#Julia-1" title="Permalink"></a></h3><pre><code class="language-julia">using ShapML
 using Random
 using DataFrames
 using RCall</code></pre><h2 id="Load-Data-in-R-1"><a class="docs-heading-anchor" href="#Load-Data-in-R-1">Load Data in R</a><a class="docs-heading-anchor-permalink" href="#Load-Data-in-R-1" title="Permalink"></a></h2><pre><code class="language-r">data(&quot;data_adult&quot;, package = &quot;shapFlex&quot;)
@@ -54,7 +54,7 @@ data_shap_tree &lt;- tidyr::gather(data_shap_tree, key = &quot;feature_name&quot
   data_pred &lt;- data.frame(&quot;y_pred&quot; = catboost.predict(model, data_pool))
 
   return(data_pred)
-}</code></pre><ul><li>In <code>Julia</code>, convert the input data, the trained model, and the   <code>predict()</code> function into <code>Julia</code> objects.</li></ul><pre><code class="language-none">data = RCall.reval(&quot;data&quot;)
+}</code></pre><ul><li>In <code>Julia</code>, convert the input data, the trained model, and the   <code>predict()</code> function into <code>Julia</code> objects.</li></ul><pre><code class="language-julia">data = RCall.reval(&quot;data&quot;)
 data = convert(DataFrame, data)
 
 outcome_name = RCall.reval(&quot;outcome_name&quot;)
@@ -63,7 +63,7 @@ outcome_name = convert(String, outcome_name)
 model_catboost = RCall.reval(&quot;model_catboost&quot;)
 
 predict_function = RCall.reval(&quot;predict_function&quot;)
-predict_function = convert(Function, predict_function)</code></pre><h4 id="ShapML.shap-1"><a class="docs-heading-anchor" href="#ShapML.shap-1">ShapML.shap</a><a class="docs-heading-anchor-permalink" href="#ShapML.shap-1" title="Permalink"></a></h4><pre><code class="language-none">explain = copy(data[1:300, :])  # Compute Shapley feature-level predictions for all instances.
+predict_function = convert(Function, predict_function)</code></pre><h4 id="ShapML.shap-1"><a class="docs-heading-anchor" href="#ShapML.shap-1">ShapML.shap</a><a class="docs-heading-anchor-permalink" href="#ShapML.shap-1" title="Permalink"></a></h4><pre><code class="language-julia">explain = copy(data[1:300, :])  # Compute Shapley feature-level predictions for all instances.
 explain = select(explain, Not(Symbol(outcome_name)))  # Remove the outcome column.
 
 reference = copy(data)  # An optional dataset for computing the intercept/baseline prediction.
@@ -101,4 +101,4 @@ p &lt;- p + geom_abline(color = &quot;red&quot;)
 p &lt;- p + facet_wrap(~ feature_name, scales = &quot;free&quot;)
 p &lt;- p + theme_bw() + xlab(&quot;catboost tree-based Shapley values&quot;) + ylab(&quot;ShapML stochastic Shapley values&quot;) +
   theme(axis.title = element_text(face = &quot;bold&quot;))
-p</code></pre><p><img src="../shap_cor_plot.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../../functions/functions/">Functions »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 31 January 2020 22:11">Friday 31 January 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+p</code></pre><p><img src="../shap_cor_plot.png" alt/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Introduction</a><a class="docs-footer-nextpage" href="../../functions/functions/">Functions »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 31 January 2020 22:57">Friday 31 January 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
