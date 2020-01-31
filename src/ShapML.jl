@@ -7,11 +7,6 @@ include("zzz.jl")  # Load predict_shap().
 
 export shap
 
-using Random
-using RDatasets
-using DataFrames
-using MLJ
-
 """
     shap(explain::DataFrame, reference = nothing, model,
          predict_function, target_features = nothing, sample_size::Integer = 60)
