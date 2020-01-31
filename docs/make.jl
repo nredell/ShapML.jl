@@ -5,7 +5,8 @@ sitename = "ShapML",
 authors = "Nickalus Redell",
 doctest = false,
 pages = [
-    "Introduction" => "index.md"
+    "Introduction" => "index.md",
+    "Vignettes" => Any["Stochastic vs. TreeSHAP" => "man/consistency.md"]
     ]
 )
 
