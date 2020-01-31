@@ -34,7 +34,8 @@
         objects from step 4.
     6.  `R`: Compare the results.
 
-# Example
+
+# Comparison
 
 ## Load Packages
 
@@ -183,7 +184,7 @@ data_shap = ShapML.shap(explain = explain,
 ## Results
 
 -   For **10 out of 13 model features**, the **correlation** between the
-    stochastic and tree-based Shapley values was **\> .99** and above
+    stochastic and tree-based Shapley values was **>= .99** and above
     .92 for the remaining features.
 
 ``` r
@@ -220,7 +221,6 @@ data_cor
     ## 12 sex               0.924
     ## 13 workclass         0.975
 
-<br>
 
 ``` r
 p <- ggplot(data_all, aes(shap_effect_catboost, shap_effect))

@@ -14,10 +14,7 @@ to compute the stochastic Shapley values for a given model feature.
     + Shapley values can be estimated for any machine learning model< using a simple user-defined `predict()` wrapper function.
 
 * **Speed**:
-    + The code itself hasn't necessarily been optimized for speed. The speed advantage of `ShapML`
-    comes in the form of giving the user the ability to select 1 or more target features of interest
-    and avoid having to compute Shapley values for all model features. This is especially
-    useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
+    + The code itself hasn't necessarily been optimized for speed. The speed advantage of `ShapML` comes in the form of giving the user the ability to select 1 or more target features of interest and avoid having to compute Shapley values for all model features. This is especially useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
 
 
 ## Install
@@ -29,7 +26,7 @@ Pkg.add("ShapML")
 
 ## Example
 
-```
+``` jldoctest
 using ShapML
 using Random
 using RDatasets
