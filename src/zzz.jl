@@ -2,7 +2,7 @@
 # Arguments are matched by position.
 using Statistics
 
-function predict_shap(;reference, data_predict, model, predict_function, n_features)
+function predict_shap(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer)
 
   data_model = data_predict[:, 1:n_features]
   data_meta = data_predict[:, (n_features + 1):size(data_predict, 2)]
@@ -27,8 +27,10 @@ function predict_shap(;reference, data_predict, model, predict_function, n_featu
   data_predicted = DataFrames.select(data_predicted, [:index, :sample, :feature_name, :shap_effect])
 
   # Final Shapley value calculation collapsed across Monte Carlo samples.
-  data_predicted = DataFrames.by(data_predicted, [:index, :feature_name], shap_effect_sd = :shap_effect => x -> mean(x),
-                                 shap_effect = :shap_effect => x -> std(x))
+  data_predicted = DataFrames.by(data_predicted, [:index, :feature_name],
+                                 shap_effect_sd = :shap_effect => x -> std(x),
+                                 shap_effect = :shap_effect => x -> mean(x),
+                                 )
 
   data_predicted.intercept = repeat([intercept], size(data_predicted, 1))
 

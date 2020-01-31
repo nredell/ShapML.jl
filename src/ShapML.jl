@@ -7,6 +7,11 @@ include("zzz.jl")  # Load predict_shap().
 
 export shap
 
+using Random
+using RDatasets
+using DataFrames
+using MLJ
+
 """
     shap(explain::DataFrame, reference = nothing, model,
          predict_function, target_features = nothing, sample_size::Integer = 60)
@@ -32,10 +37,6 @@ Compute stochastic feature-level Shapley values for any ML model.
 """
 function shap(;explain::DataFrame, reference = nothing, model,
     predict_function, target_features = nothing, sample_size::Integer = 60)
-
-    if !isa(predict_function, Function)
-        error(""""predict_function" should be a "Function" object.""")
-    end
 
     feature_names = String.(names(explain))
 
@@ -92,10 +93,11 @@ function shap(;explain::DataFrame, reference = nothing, model,
         explain_instances = explain[:, feature_indices_random]
 
         data_sample_feature = Array{Any}(undef, length(target_features))
-        for j in 1:length(target_features)
+        for j in 1:length(target_features)  # Loop over model features in target_features.
 
-            target_feature_index = convert(Int, findall(occursin.(target_features[j], feature_names))[1])
-            target_feature_index_shuffled = convert(Int, findall(occursin.(target_features[j], feature_names_random))[1])
+            target_feature_index = (1:length(feature_names))[target_features[j] .== feature_names][1]
+
+            target_feature_index_shuffled = (1:length(feature_names))[target_features[j] .== feature_names_random][1]
 
             # Create the Frankenstein instances: a combination of the instance to be explained with the
             # reference instance to create a new instance that [likely] does not exist in the dataset.
@@ -121,6 +123,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
             explain_instance_fake_target = copy(explain_instance_real_target)
             explain_instance_fake_target[:, target_feature_index_shuffled] .= reference_instance[target_feature_index_shuffled]
             #------------------------------------------------------------------
+            # Re-order columns for the user-defined predict() function.
             explain_instance_real_target = explain_instance_real_target[:, Symbol.(feature_names)]
             explain_instance_fake_target = explain_instance_fake_target[:, Symbol.(feature_names)]
 

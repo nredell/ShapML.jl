@@ -6,6 +6,7 @@ authors = "Nickalus Redell",
 doctest = false,
 pages = [
     "Introduction" => "index.md",
+    "Algorithm comparison" => "consistency.md"
     ]
 )
 
