@@ -11,29 +11,26 @@ are an intuitive and theoretically sound model-agnostic diagnostic tool to under
 
 This package implements the algorithm described in
 [Štrumbelj and Kononenko's (2014) sampling-based Shapley approximation algorithm](https://link.springer.com/article/10.1007%2Fs10115-013-0679-x)
-to compute the stochastic Shapley values for a given model feature.
+to compute the stochastic Shapley values for a given instance and model feature.
 
 * **Flexibility**:
-    + Shapley values can be estimated for <u>any machine learning model</u> using a simple user-defined
-    `predict()` wrapper function.
+    + Shapley values can be estimated for any machine learning model using a simple user-defined `predict()` wrapper function.
 
 * **Speed**:
-    + The code itself hasn't necessarily been optimized for speed. The speed advantage of `ShapML`
-    comes in the form of giving the user the ability to <u>select 1 or more target features of interest</u>
-    and avoid having to compute Shapley values for all model features. This is especially
-    useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
+    + The speed advantage of `ShapML` comes in the form of giving the user the ability to select 1 or more target features of interest and avoid having to compute Shapley values for all model features (i.e., a subset of target features from a trained model will return the same feature-level Shapley values as the full model with all features). This is especially useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
 
 
 ## Install
 
 ``` julia
 using Pkg
-Pkg.add(PackageSpec(url = "https://github.com/nredell/ShapML.jl"))
+Pkg.add("ShapML")
 ```
+
 
 ## Documentation and Vignettes
 
-* [Dev version](https://nredell.github.io/ShapML.jl/dev/)
+* [Docs](https://nredell.github.io/ShapML.jl/dev/)
 
 
 ## Example
