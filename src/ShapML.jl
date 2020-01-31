@@ -18,7 +18,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `reference`: Optional. A DataFrame with the same format as `explain` which serves as a reference group against which the Shapley value deviations from `explain` are compared (i.e., the model intercept).
 - `model`: A trained ML model that is passed into `predict_function`.
 - `predict_function`: A wrapper function that takes 2 required positional arguments–(1) the trained model from `model` and (2) a DataFrame of instances with the same format as `explain`. The function should return a 1-column DataFrame of model predictions; the column name does not matter.
-- `target_features`: Optional. A character vector that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
+- `target_features`: Optional. An `Array{String, 1}` of model features that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
 - `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
 
 # Return
@@ -37,7 +37,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
 
     if (target_features === nothing)
 
-        target_features = feature_names  # Default is to explain with all features.
+        target_features = copy(feature_names)  # Default is to explain with all features.
 
     else
 
@@ -73,13 +73,13 @@ function shap(;explain::DataFrame, reference = nothing, model,
     data_sample = Array{Any}(undef, sample_size)
     for i in 1:sample_size  # Loop over Monte Carlo samples.
 
-        # Select a reference instance.
-        reference_index = rand(1:n_instances)
-
         # Shuffle the column indices, keeping all column indices.
         feature_indices_random = Random.randperm(n_features)
 
         feature_names_random = feature_names[feature_indices_random]
+
+        # Select a reference instance.
+        reference_index = rand(1:n_instances)
 
         # Shuffle the column order for the randomly selected instance.
         reference_instance = reference[reference_index, feature_indices_random]

@@ -1,3 +1,4 @@
+
 # Purpose
 
 -   The goal of this vignette is to demonstrate how, for the same

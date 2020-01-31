@@ -6,11 +6,9 @@ using DataFrames
 using Random
 using Statistics
 
-@testset "Each instance has a Shapley value for each feature." begin
+@testset "shap return values are correct." begin
 
     #--------------------------------------------------------------------------
-    # Test that each instance has a Shapley value for each feature.
-
     data = DataFrame(y = 1:10, x1 = 1:10, x2 = 1:10, x3 = 1:10)
 
     function model_mean(data)
@@ -33,8 +31,20 @@ using Statistics
                             sample_size = 10
                             )
 
+    #--------------------------------------------------------------------------
     # Test that each instance has a Shapley value for each feature.
     @test size(data_shap, 1) == (size(data, 1) * (size(data, 2) - 1))
+    #--------------------------------------------------------------------------
+    # Test that the Shapley values are the same for a subset of target features.
+    Random.seed!(224)
+    data_shap_feature = ShapML.shap(explain = data[:, 2:end],
+                                    model = model_mean,
+                                    predict_function = predict_function,
+                                    target_features = ["x2"],
+                                    sample_size = 10
+                                    )
+
+    @test all(data_shap[data_shap.feature_name .== "x2", [:shap_effect]].shap_effect .== data_shap_feature[data_shap_feature.feature_name .== "x2", [:shap_effect]].shap_effect)
     #--------------------------------------------------------------------------
 end
 end  # End test module.
