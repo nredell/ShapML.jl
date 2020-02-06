@@ -84,6 +84,6 @@ data_shap = ShapML.shap(explain = explain,
                         sample_size = sample_size
                         )
 
-first(data_shap, 20)
+show(data_shap, allcols = true)
 ```
 ![](./tools/shap_output.PNG)
