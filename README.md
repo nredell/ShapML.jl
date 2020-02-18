@@ -86,7 +86,9 @@ data_shap = ShapML.shap(explain = explain,
 
 show(data_shap, allcols = true)
 ```
-![](./tools/shap_output.PNG)
+<p align="center">
+    ![](./tools/shap_output.PNG)
+</p>
 
 * Now we'll create several plots that summarize the Shapley results for our Random Forest model.
 These plots will eventually be refined and incorporated into `ShapML`.
@@ -110,4 +112,6 @@ p = plot(data_plot, y = :feature_name, x = :mean_effect, Coord.cartesian(yflip =
          Guide.xlabel("|Shapley effect| (baseline = $baseline)"), Guide.ylabel(nothing),
          Guide.title("Feature Importance - Mean Absolute Shapley Value"))
 ```
-![](./tools/feature_importance_example.png)
+<p align="center">
+    ![](./tools/feature_importance_example.png)
+</p>
