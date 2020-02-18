@@ -111,7 +111,30 @@ p = plot(data_plot, y = :feature_name, x = :mean_effect, Coord.cartesian(yflip =
          Theme(bar_spacing = 1mm),
          Guide.xlabel("|Shapley effect| (baseline = $baseline)"), Guide.ylabel(nothing),
          Guide.title("Feature Importance - Mean Absolute Shapley Value"))
+p
 ```
 <p align="center">
     <img src="./tools/feature_importance_example.png" alt="feature_importance">
+</p>
+
+
+* **Global feature effects**
+    + The plot below shows how changing the value of the `Rm` feature--the most influential feature overall--affects
+    model predictions (holding the other features constant). Each point represents 1 of our 300 explained instances.
+    The black line is a loess line of best fit to summarize the effect.
+
+``` julia
+data_plot = data_shap[data_shap.feature_name .== "Rm", :]  # Selecting 1 feature for ease of plotting.
+
+baseline = round(data_shap.intercept[1], digits = 1)
+
+p_points = layer(data_plot, x = :feature_value, y = :shap_effect, Geom.point())
+p_line = layer(data_plot, x = :feature_value, y = :shap_effect, Geom.smooth(method = :loess, smoothing = 0.5),
+               style(line_width = 0.75mm,), Theme(default_color = "black"))
+p = plot(p_line, p_points, Guide.xlabel("Feature value"), Guide.ylabel("Shapley effect (baseline = $baseline)"),
+         Guide.title("Feature Effect - $(data_plot.feature_name[1])"))
+p
+```
+<p align="center">
+    <img src="./tools/feature_effects.png" alt="feature_effects">
 </p>
