@@ -1,5 +1,4 @@
 # Internal prediction function. Used at the end of shap().
-# Arguments are matched by position.
 using Statistics
 
 function predict_shap(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer)
@@ -16,7 +15,7 @@ function predict_shap(;reference::DataFrame, data_predict::DataFrame, model, pre
   intercept = Statistics.mean(predict_function(model, reference)[:, 1])
   #----------------------------------------------------------------------------
   # Cast the data.frame to, for each random sample, take the difference between the Frankenstein
-  # instances which are now in six columns: two for symmetric and four for asymmetric.
+  # instances.
   user_fun_y_pred_name = names(data_predicted)[end]
 
   data_predicted = DataFrames.unstack(data_predicted, [:index, :sample, :feature_name], :feature_group, user_fun_y_pred_name)

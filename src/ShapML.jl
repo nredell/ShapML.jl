@@ -34,6 +34,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
     predict_function, target_features = nothing, sample_size::Integer = 60)
 
     feature_names = String.(names(explain))
+    feature_names_symbol = Symbol.(feature_names)
 
     if (target_features === nothing)
 
@@ -45,7 +46,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
             error(""""target_features" should be an array of feature names of type "String".""")
         end
 
-        if !all([any(occursin.(x, feature_names)) for x in target_features])
+        if !all(map(x -> any(x .== target_features), target_features))
             error("""One or more "target_features" is not in String.(names(explain)).""")
         end
     end
@@ -78,14 +79,15 @@ function shap(;explain::DataFrame, reference = nothing, model,
 
         feature_names_random = feature_names[feature_indices_random]
 
-        # Select a reference instance.
+        # Select a reference instance that all instances in explain will be compared to in
+        # this Monte Carlo iteration.
         reference_index = rand(1:n_instances)
 
         # Shuffle the column order for the randomly selected instance.
-        reference_instance = reference[reference_index, feature_indices_random]
+        reference_instance = reference[[reference_index], feature_indices_random]
 
         # For the instance(s) to be explained, shuffle the columns to match the randomly selected and shuffled instance.
-        explain_instances = explain[:, feature_indices_random]
+        explain_instances = explain[1:size(explain, 1), feature_indices_random]
 
         data_sample_feature = Array{Any}(undef, length(target_features))
         for j in 1:length(target_features)  # Loop over model features in target_features.
@@ -100,6 +102,11 @@ function shap(;explain::DataFrame, reference = nothing, model,
             # These instances have the real target feature and all features to the right of the shuffled
             # target feature index are from the random reference instance.
 
+            # Then, the marginal feature effect, or stochastic Shapley value approximation,
+            # is the difference in predicted values between 1 Frankenstein instance
+            # that also replaces the target feature from the reference group and 1 Frankenstein
+            # instance where the target feature remains unchanged from its value in explain.
+
             # Initialize the instances to be explained.
             explain_instance_real_target = copy(explain_instances)
 
@@ -107,7 +114,7 @@ function shap(;explain::DataFrame, reference = nothing, model,
             # one or more features to the right of the target to replace with the reference.
             if target_feature_index_shuffled < n_features
               explain_instance_real_target = explain_instance_real_target[:, 1:target_feature_index_shuffled]
-              explain_instance_real_target_fake_features = repeat(DataFrames.DataFrame(reference_instance[(target_feature_index_shuffled + 1):(n_features)]), size(explain, 1))
+              explain_instance_real_target_fake_features = repeat(reference_instance[:, (target_feature_index_shuffled + 1):(n_features)], size(explain, 1))
               explain_instance_real_target = hcat(explain_instance_real_target, explain_instance_real_target_fake_features)
             end
 
@@ -116,22 +123,21 @@ function shap(;explain::DataFrame, reference = nothing, model,
             # instance. The difference in model predictions between these two Frankenstein instances is
             # what gives us the stochastic Shapley value approximation.
             explain_instance_fake_target = copy(explain_instance_real_target)
-            explain_instance_fake_target[:, target_feature_index_shuffled] .= reference_instance[target_feature_index_shuffled]
+            explain_instance_fake_target[:, target_feature_index_shuffled] .= reference_instance[!, target_feature_index_shuffled]
             #------------------------------------------------------------------
             # Re-order columns for the user-defined predict() function.
-            explain_instance_real_target = explain_instance_real_target[:, Symbol.(feature_names)]
-            explain_instance_fake_target = explain_instance_fake_target[:, Symbol.(feature_names)]
+            explain_instance_real_target = explain_instance_real_target[:, feature_names_symbol]
+            explain_instance_fake_target = explain_instance_fake_target[:, feature_names_symbol]
 
-            data_explain_instance = vcat(explain_instance_real_target, explain_instance_fake_target)
+            data_sample_feature[j] = vcat(explain_instance_real_target, explain_instance_fake_target)
 
             # Two Frankenstein instances per explained instance.
-            data_explain_instance.index = repeat(repeat(1:size(explain, 1)), 2)
-            data_explain_instance.feature_group = collect(Iterators.flatten([repeat(["real_target"], size(explain, 1)), repeat(["fake_target"], size(explain, 1))]))
-            data_explain_instance.feature_name = repeat([target_features[j]], size(data_explain_instance, 1))
-            data_explain_instance.causal = repeat([0], size(data_explain_instance, 1))
-            data_explain_instance.causal_type = repeat([missing], size(data_explain_instance, 1))
-            data_explain_instance.sample = repeat([i], size(data_explain_instance, 1))
-            data_sample_feature[j] = data_explain_instance
+            data_sample_feature[j].index = repeat(1:size(explain, 1), outer = 2)
+            data_sample_feature[j].feature_group = repeat(["real_target", "fake_target"], inner = size(explain, 1))
+            data_sample_feature[j].feature_name = repeat([target_features[j]], size(data_sample_feature[j], 1))
+            #data_explain_instance.causal = repeat([0], size(data_explain_instance, 1))
+            #data_explain_instance.causal_type = repeat([missing], size(data_explain_instance, 1))
+            data_sample_feature[j].sample = repeat([i], size(data_sample_feature[j], 1))
 
         end  # End 'j' loop for data_sample_feature.
 
@@ -150,12 +156,10 @@ function shap(;explain::DataFrame, reference = nothing, model,
                              n_features = n_features  # Calculated.
                              )
     #--------------------------------------------------------------------------
-    # Melt the input 'explain' data.frame for merging the model features to the Shapley values. Suppress
-    # the warning resulting from any factors and numeric features being combined into one 'feature_value'
-    # column and coerced to characters.
-    data_merge = DataFrames.stack(explain, Symbol.(feature_names))
+    # Melt the input 'explain' data.frame for merging the model features to the Shapley values.
+    data_merge = DataFrames.stack(explain, feature_names_symbol)
     rename!(data_merge, Dict(:variable => "feature_name", :value => "feature_value"))
-    data_merge.feature_name = String.(data_merge.feature_name)
+    data_merge.feature_name = String.(data_merge.feature_name)  # Coerce for merging.
 
     data_merge.index = repeat(1:size(explain, 1), n_features)  # The merge index for each instance.
 
