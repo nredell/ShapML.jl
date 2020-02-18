@@ -87,3 +87,27 @@ data_shap = ShapML.shap(explain = explain,
 show(data_shap, allcols = true)
 ```
 ![](./tools/shap_output.PNG)
+
+* Now we'll create several plots that summarize the Shapley results for our Random Forest model.
+These plots will eventually be refined and incorporated into `ShapML`.
+
+* **Global feature importance**
+    + Because Shapley values represent deviations from the average or baseline prediction,
+    plotting their average absolute value for each feature gives a sense of the magnitude with which
+    they affect model predictions across all explained instances.
+
+``` julia
+data_plot = DataFrames.by(data_shap, [:feature_name],
+                          mean_effect = [:shap_effect] => x -> mean(abs.(x.shap_effect)))
+
+data_plot = sort(data_plot, order(:mean_effect, rev = true))
+
+baseline = round(data_shap.intercept[1], digits = 1)
+
+p = plot(data_plot, y = :feature_name, x = :mean_effect, Coord.cartesian(yflip = true),
+         Scale.y_discrete, Geom.bar(position = :dodge, orientation = :horizontal),
+         Theme(bar_spacing = 1mm),
+         Guide.xlabel("|Shapley effect| (baseline = $baseline)"), Guide.ylabel(nothing),
+         Guide.title("Feature Importance - Mean Absolute Shapley Value"))
+```
+![](./tools/feature_importance_example.png)
