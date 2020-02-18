@@ -30,7 +30,7 @@ Pkg.add("ShapML")
 
 ## Documentation and Vignettes
 
-* [Docs](https://nredell.github.io/ShapML.jl/dev/)
+* **[Docs](https://nredell.github.io/ShapML.jl/dev/)**
 
 
 ## Example
@@ -40,7 +40,8 @@ using ShapML
 using Random
 using RDatasets
 using DataFrames
-using MLJ
+using MLJ  # Machine learning
+using Gadfly  # Plotting
 
 # Load data.
 boston = RDatasets.dataset("MASS", "Boston")
