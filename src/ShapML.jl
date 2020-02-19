@@ -2,6 +2,7 @@ module ShapML
 
 using DataFrames
 using Random
+using Distributed
 
 include("zzz.jl")  # Load predict_shap().
 
@@ -20,6 +21,8 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `predict_function`: A wrapper function that takes 2 required positional arguments–(1) the trained model from `model` and (2) a DataFrame of instances with the same format as `explain`. The function should return a 1-column DataFrame of model predictions; the column name does not matter.
 - `target_features`: Optional. An `Array{String, 1}` of model features that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
 - `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
+- `parallel::Symbol`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with
+the `@distributed` macro.
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -30,8 +33,13 @@ Compute stochastic feature-level Shapley values for any ML model.
     + `shap_effect_sd`: The standard deviation of Shapley values across Monte Carlo samples.
     + `intercept`: The average model prediction from `explain` or `reference`.
 """
-function shap(;explain::DataFrame, reference = nothing, model,
-    predict_function, target_features = nothing, sample_size::Integer = 60)
+function shap(;explain::DataFrame,
+              reference = nothing,
+              model,
+              predict_function,
+              target_features = nothing,
+              sample_size::Integer = 60,
+              parallel::Symbol = [:none, :samples])
 
     feature_names = String.(names(explain))
     feature_names_symbol = Symbol.(feature_names)
@@ -71,8 +79,35 @@ function shap(;explain::DataFrame, reference = nothing, model,
         n_instances = size(reference, 1)
     end
     #----------------------------------------------------------------------------
+    # Parallel computation setup; the type of parallelization, if any, depends on
+    # the 'parallel' argument.
+    if isa(parallel, Array)
+        parallel = parallel[1]  # Default is a non-parallel computation.
+    end
+
+     if !any(parallel .== [:none, :samples])
+         error(""""parallel" should be one of "[:none, :samples]".""")
+     end
+
+    # A macro that prepares the 'for' loop for consumption for '@sync @distributed'.
+    macro eval_early(loop_over_samples::Expr)  # 'loop_over_samples' is the hardcoded 'for' loop.
+      esc(quote
+            eval(loop_over_samples)
+          end)
+    end
+
+    # A function that chooses serial or parallel computation depending on user input.
+    function _parallel_loop(loop::Expr, parallel::Symbol)
+      if parallel == :none
+        @eval $loop
+      elseif parallel == :samples
+        @eval_early @sync @distributed loop
+      end
+    end
+    #----------------------------------------------------------------------------
     data_sample = Array{Any}(undef, sample_size)
-    for i in 1:sample_size  # Loop over Monte Carlo samples.
+
+    loop_over_samples = :(for i in 1:sample_size  # for i in 1:sample_size  # Loop over Monte Carlo samples.
 
         # Shuffle the column indices, keeping all column indices.
         feature_indices_random = Random.randperm(n_features)
@@ -144,6 +179,11 @@ function shap(;explain::DataFrame, reference = nothing, model,
         data_sample[i] = vcat(data_sample_feature...)
 
     end  # End 'i' loop for data_sample.
+    )  # End Expr wrapping the 'for' loop for an optional parallel loop macro.
+    #--------------------------------------------------------------------------
+    # Calculate the Shapley values serially or in parallel. This function will
+    # fill the empty 'data_sample' array.
+    _parallel_loop(loop_over_samples, parallel)
     #--------------------------------------------------------------------------
     # Put all Frankenstein instances from all instances passed in 'explain' into
     # a single data.frame for the user-defined predict() function.
