@@ -5,6 +5,7 @@ using Test
 using DataFrames
 using Random
 using Statistics
+using Distributed
 
 @testset "shap return values are correct." begin
 
