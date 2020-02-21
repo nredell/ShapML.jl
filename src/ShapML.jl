@@ -4,13 +4,19 @@ using DataFrames
 using Random
 using Distributed
 
-include("zzz.jl")  # Load predict_shap().
+include("predict.jl")  # Load _predict().
+include("shap_sample.jl")  # Load _shap_sample().
 
 export shap
 
 """
-    shap(explain::DataFrame, reference = nothing, model,
-         predict_function, target_features = nothing, sample_size::Integer = 60)
+    shap(explain::DataFrame,
+         reference = nothing,
+         model,
+         predict_function,
+         target_features = nothing,
+         sample_size::Integer = 60,
+         parallel::Symbol = [:none, :samples])
 
 Compute stochastic feature-level Shapley values for any ML model.
 
@@ -21,8 +27,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `predict_function`: A wrapper function that takes 2 required positional arguments–(1) the trained model from `model` and (2) a DataFrame of instances with the same format as `explain`. The function should return a 1-column DataFrame of model predictions; the column name does not matter.
 - `target_features`: Optional. An `Array{String, 1}` of model features that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
 - `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
-- `parallel::Symbol`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with
-the `@distributed` macro.
+- `parallel::Symbol`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with `pmap()`.
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -39,7 +44,8 @@ function shap(;explain::DataFrame,
               predict_function,
               target_features = nothing,
               sample_size::Integer = 60,
-              parallel::Symbol = [:none, :samples])
+              parallel::Symbol = [:none, :samples]
+              )
 
     feature_names = String.(names(explain))
     feature_names_symbol = Symbol.(feature_names)
@@ -88,113 +94,33 @@ function shap(;explain::DataFrame,
      if !any(parallel .== [:none, :samples])
          error(""""parallel" should be one of "[:none, :samples]".""")
      end
-
-    # A macro that prepares the 'for' loop for consumption for '@sync @distributed'.
-    macro eval_early(loop_over_samples::Expr)  # 'loop_over_samples' is the hardcoded 'for' loop.
-      esc(quote
-            eval(loop_over_samples)
-          end)
-    end
-
+    #--------------------------------------------------------------------------
     # A function that chooses serial or parallel computation depending on user input.
-    function _parallel_loop(loop::Expr, parallel::Symbol)
-      if parallel == :none
-        @eval $loop
-      elseif parallel == :samples
-        @eval_early @sync @distributed loop
-      end
-    end
-    #----------------------------------------------------------------------------
     data_sample = Array{Any}(undef, sample_size)
 
-    loop_over_samples = :(for i in 1:sample_size  # for i in 1:sample_size  # Loop over Monte Carlo samples.
+    if parallel == :none
 
-        # Shuffle the column indices, keeping all column indices.
-        feature_indices_random = Random.randperm(n_features)
+        _i = nothing
+        _shap_sample(explain, reference, n_instances, n_features, target_features,
+                     feature_names, feature_names_symbol, sample_size, parallel, _i, data_sample)
 
-        feature_names_random = feature_names[feature_indices_random]
+    elseif parallel == :samples
 
-        # Select a reference instance that all instances in explain will be compared to in
-        # this Monte Carlo iteration.
-        reference_index = rand(1:n_instances)
-
-        # Shuffle the column order for the randomly selected instance.
-        reference_instance = reference[[reference_index], feature_indices_random]
-
-        # For the instance(s) to be explained, shuffle the columns to match the randomly selected and shuffled instance.
-        explain_instances = explain[1:size(explain, 1), feature_indices_random]
-
-        data_sample_feature = Array{Any}(undef, length(target_features))
-        for j in 1:length(target_features)  # Loop over model features in target_features.
-
-            target_feature_index = (1:length(feature_names))[target_features[j] .== feature_names][1]
-
-            target_feature_index_shuffled = (1:length(feature_names))[target_features[j] .== feature_names_random][1]
-
-            # Create the Frankenstein instances: a combination of the instance to be explained with the
-            # reference instance to create a new instance that [likely] does not exist in the dataset.
-
-            # These instances have the real target feature and all features to the right of the shuffled
-            # target feature index are from the random reference instance.
-
-            # Then, the marginal feature effect, or stochastic Shapley value approximation,
-            # is the difference in predicted values between 1 Frankenstein instance
-            # that also replaces the target feature from the reference group and 1 Frankenstein
-            # instance where the target feature remains unchanged from its value in explain.
-
-            # Initialize the instances to be explained.
-            explain_instance_real_target = copy(explain_instances)
-
-            # Only create a Frankenstein instance if the target is not the last feature and there is actually
-            # one or more features to the right of the target to replace with the reference.
-            if target_feature_index_shuffled < n_features
-              explain_instance_real_target = explain_instance_real_target[:, 1:target_feature_index_shuffled]
-              explain_instance_real_target_fake_features = repeat(reference_instance[:, (target_feature_index_shuffled + 1):(n_features)], size(explain, 1))
-              explain_instance_real_target = hcat(explain_instance_real_target, explain_instance_real_target_fake_features)
-            end
-
-            # These instances are otherwise the same as the Frankenstein instance created above with the
-            # exception that the target feature is now replaced with the target feature in the random reference
-            # instance. The difference in model predictions between these two Frankenstein instances is
-            # what gives us the stochastic Shapley value approximation.
-            explain_instance_fake_target = copy(explain_instance_real_target)
-            explain_instance_fake_target[:, target_feature_index_shuffled] .= reference_instance[!, target_feature_index_shuffled]
-            #------------------------------------------------------------------
-            # Re-order columns for the user-defined predict() function.
-            explain_instance_real_target = explain_instance_real_target[:, feature_names_symbol]
-            explain_instance_fake_target = explain_instance_fake_target[:, feature_names_symbol]
-
-            data_sample_feature[j] = vcat(explain_instance_real_target, explain_instance_fake_target)
-
-            # Two Frankenstein instances per explained instance.
-            data_sample_feature[j].index = repeat(1:size(explain, 1), outer = 2)
-            data_sample_feature[j].feature_group = repeat(["real_target", "fake_target"], inner = size(explain, 1))
-            data_sample_feature[j].feature_name = repeat([target_features[j]], size(data_sample_feature[j], 1))
-            #data_explain_instance.causal = repeat([0], size(data_explain_instance, 1))
-            #data_explain_instance.causal_type = repeat([missing], size(data_explain_instance, 1))
-            data_sample_feature[j].sample = repeat([i], size(data_sample_feature[j], 1))
-
-        end  # End 'j' loop for data_sample_feature.
-
-        data_sample[i] = vcat(data_sample_feature...)
-
-    end  # End 'i' loop for data_sample.
-    )  # End Expr wrapping the 'for' loop for an optional parallel loop macro.
-    #--------------------------------------------------------------------------
-    # Calculate the Shapley values serially or in parallel. This function will
-    # fill the empty 'data_sample' array.
-    _parallel_loop(loop_over_samples, parallel)
+        pmap(_i -> _shap_sample(explain, reference, n_instances, n_features, target_features,
+                                feature_names, feature_names_symbol, sample_size, parallel, _i, data_sample),
+                                1:sample_size)
+    end
     #--------------------------------------------------------------------------
     # Put all Frankenstein instances from all instances passed in 'explain' into
     # a single data.frame for the user-defined predict() function.
     data_predict = vcat(data_sample...)
 
-    data_shap = predict_shap(reference = reference,  # input arg.
-                             data_predict = data_predict,  # Calculated.
-                             model = model,  # input arg.
-                             predict_function = predict_function,  # input arg.
-                             n_features = n_features  # Calculated.
-                             )
+    data_shap = _predict(reference = reference,  # input arg.
+                         data_predict = data_predict,  # Calculated.
+                         model = model,  # input arg.
+                         predict_function = predict_function,  # input arg.
+                         n_features = n_features  # Calculated.
+                         )
     #--------------------------------------------------------------------------
     # Melt the input 'explain' data.frame for merging the model features to the Shapley values.
     data_merge = DataFrames.stack(explain, feature_names_symbol)

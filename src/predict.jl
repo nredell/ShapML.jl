@@ -1,7 +1,7 @@
 # Internal prediction function. Used at the end of shap().
 using Statistics
 
-function predict_shap(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer)
+function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer)
 
   data_model = data_predict[:, 1:n_features]
   data_meta = data_predict[:, (n_features + 1):size(data_predict, 2)]
