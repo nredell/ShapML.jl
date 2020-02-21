@@ -11,10 +11,10 @@ export shap
 
 """
     shap(explain::DataFrame,
-         reference = nothing,
+         reference::Union{DataFrame, Nothing} = nothing,
          model,
          predict_function,
-         target_features = nothing,
+         target_features::Union{Vector, Nothing} = nothing,
          sample_size::Integer = 60,
          parallel::Symbol = [:none, :samples])
 
@@ -27,7 +27,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `predict_function`: A wrapper function that takes 2 required positional arguments–(1) the trained model from `model` and (2) a DataFrame of instances with the same format as `explain`. The function should return a 1-column DataFrame of model predictions; the column name does not matter.
 - `target_features`: Optional. An `Array{String, 1}` of model features that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
 - `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
-- `parallel::Symbol`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with `pmap()`.
+- `parallel::Union{Symbol, Nothing}`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with `pmap()`.
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -39,12 +39,12 @@ Compute stochastic feature-level Shapley values for any ML model.
     + `intercept`: The average model prediction from `explain` or `reference`.
 """
 function shap(;explain::DataFrame,
-              reference = nothing,
+              reference::Union{DataFrame, Nothing} = nothing,
               model,
               predict_function,
-              target_features = nothing,
+              target_features::Union{Vector, Nothing} = nothing,
               sample_size::Integer = 60,
-              parallel::Symbol = [:none, :samples]
+              parallel::Union{Symbol, Nothing} = nothing
               )
 
     feature_names = String.(names(explain))
@@ -87,7 +87,11 @@ function shap(;explain::DataFrame,
     #----------------------------------------------------------------------------
     # Parallel computation setup; the type of parallelization, if any, depends on
     # the 'parallel' argument.
-    if isa(parallel, Array)
+    if (parallel === nothing)
+        parallel = :none
+    end
+
+    if isa(parallel, Vector)
         parallel = parallel[1]  # Default is a non-parallel computation.
     end
 
@@ -95,7 +99,8 @@ function shap(;explain::DataFrame,
          error(""""parallel" should be one of "[:none, :samples]".""")
      end
     #--------------------------------------------------------------------------
-    # A function that chooses serial or parallel computation depending on user input.
+    # Main Shapley value computation from _shap_sample() which modifies data_sample
+    # in place. This code is either run serially or in parallel.
     data_sample = Array{Any}(undef, sample_size)
 
     if parallel == :none
