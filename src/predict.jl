@@ -27,8 +27,8 @@ function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict
 
   # Final Shapley value calculation collapsed across Monte Carlo samples.
   data_predicted = DataFrames.by(data_predicted, [:index, :feature_name],
-                                 shap_effect_sd = :shap_effect => x -> std(x),
-                                 shap_effect = :shap_effect => x -> mean(x),
+                                 shap_effect_sd = :shap_effect => x -> Statistics.std(x),
+                                 shap_effect = :shap_effect => x -> Statistics.mean(x),
                                  )
 
   data_predicted.intercept = repeat([intercept], size(data_predicted, 1))

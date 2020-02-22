@@ -1,21 +1,37 @@
 # The main Shapley sampling algorithm.
-function _shap_sample(explain, reference, n_instances, n_features, target_features,
-                      feature_names, feature_names_symbol, sample_size, parallel,
-                      _i, data_sample)
+function _shap_sample(explain::DataFrame,
+                      reference::DataFrame,
+                      n_instances::Int64,
+                      n_features::Int64,
+                      target_features::Array{String,1},
+                      feature_names::Array{String,1},
+                      feature_names_symbol::Array{Symbol,1},
+                      sample_size::Int64,
+                      parallel::Symbol,
+                      seeds
+                      )
+
+    if parallel == :none
+        data_sample = Array{Any}(undef, sample_size)
+    elseif parallel == :samples
+        data_sample = Array{Any}(undef, 1)  # Parallel with pmap().
+    end
 
     for i in if parallel == :none
         1:sample_size  # Non-parallel loop over Monte Carlo samples.
     elseif parallel == :samples
-        _i  # Parallel with pmap(), where '_i' is a single 'i' in 1:sample_size.
+        1  # Parallel with pmap().
     end
 
         # Shuffle the column indices, keeping all column indices.
+        Random.seed!(seeds[i])
         feature_indices_random = Random.randperm(n_features)
 
         feature_names_random = feature_names[feature_indices_random]
 
         # Select a reference instance that all instances in explain will be compared to in
         # this Monte Carlo iteration.
+        Random.seed!(seeds[i])
         reference_index = rand(1:n_instances)
 
         # Shuffle the column order for the randomly selected instance.
@@ -79,4 +95,6 @@ function _shap_sample(explain, reference, n_instances, n_features, target_featur
         data_sample[i] = vcat(data_sample_feature...)
 
     end  # End 'i' loop for data_sample.
+
+    return data_sample
 end  # End _shap_sample().

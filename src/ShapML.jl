@@ -1,8 +1,8 @@
 module ShapML
 
+using Distributed
 using DataFrames
 using Random
-using Distributed
 
 include("predict.jl")  # Load _predict().
 include("shap_sample.jl")  # Load _shap_sample().
@@ -16,7 +16,8 @@ export shap
          predict_function,
          target_features::Union{Vector, Nothing} = nothing,
          sample_size::Integer = 60,
-         parallel::Symbol = [:none, :samples])
+         parallel::Symbol = [:none, :samples],
+         seed::Integer = 1)
 
 Compute stochastic feature-level Shapley values for any ML model.
 
@@ -28,6 +29,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `target_features`: Optional. An `Array{String, 1}` of model features that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
 - `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
 - `parallel::Union{Symbol, Nothing}`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with `pmap()`.
+- `seed::Integer`: A number passed to `Random.seed!()` to get reproducible results.
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -44,7 +46,8 @@ function shap(;explain::DataFrame,
               predict_function,
               target_features::Union{Vector, Nothing} = nothing,
               sample_size::Integer = 60,
-              parallel::Union{Symbol, Nothing} = nothing
+              parallel::Union{Symbol, Nothing} = nothing,
+              seed::Integer = 1
               )
 
     feature_names = String.(names(explain))
@@ -84,7 +87,7 @@ function shap(;explain::DataFrame,
 
         n_instances = size(reference, 1)
     end
-    #----------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
     # Parallel computation setup; the type of parallelization, if any, depends on
     # the 'parallel' argument.
     if (parallel === nothing)
@@ -99,26 +102,63 @@ function shap(;explain::DataFrame,
          error(""""parallel" should be one of "[:none, :samples]".""")
      end
     #--------------------------------------------------------------------------
-    # Main Shapley value computation from _shap_sample() which modifies data_sample
-    # in place. This code is either run serially or in parallel.
-    data_sample = Array{Any}(undef, sample_size)
-
+    # Create a vector of random seeds to get reproducible results with both
+    # serial and parallel computations.
+    Random.seed!(seed)
+    seeds = abs.(rand(Int, sample_size))
+    #--------------------------------------------------------------------------
+    # Main Shapley value computation from _shap_sample(). This code is either
+    # run serially or in parallel.
     if parallel == :none
 
-        _i = nothing
-        _shap_sample(explain, reference, n_instances, n_features, target_features,
-                     feature_names, feature_names_symbol, sample_size, parallel, _i, data_sample)
+        data_sample = _shap_sample(explain,
+                                   reference,
+                                   n_instances,
+                                   n_features,
+                                   target_features,
+                                   feature_names,
+                                   feature_names_symbol,
+                                   sample_size,
+                                   parallel,
+                                   seeds
+                                   )
 
     elseif parallel == :samples
 
-        pmap(_i -> _shap_sample(explain, reference, n_instances, n_features, target_features,
-                                feature_names, feature_names_symbol, sample_size, parallel, _i, data_sample),
-                                1:sample_size)
-    end
+        @everywhere begin
+            explain = $explain
+            reference = $reference
+            n_instances = $n_instances
+            n_features = $n_features
+            target_features = $target_features
+            feature_names = $feature_names
+            feature_names_symbol = $feature_names_symbol
+            sample_size = $sample_size
+            parallel = :samples
+            seeds = $seeds
+        end
+
+        data_sample = pmap(_i -> _shap_sample(explain,
+                                              reference,
+                                              n_instances,
+                                              n_features,
+                                              target_features,
+                                              feature_names,
+                                              feature_names_symbol,
+                                              sample_size,
+                                              parallel,
+                                              seeds[_i]
+                                              ), 1:sample_size)
+    end  # End Shapley value Monte Carlo calculation.
     #--------------------------------------------------------------------------
     # Put all Frankenstein instances from all instances passed in 'explain' into
     # a single data.frame for the user-defined predict() function.
     data_predict = vcat(data_sample...)
+
+    if parallel == :samples
+        data_predict = vcat(data_predict...)
+        data_predict.sample = repeat(1:sample_size, inner = size(explain, 1) * length(target_features) * 2)
+    end
 
     data_shap = _predict(reference = reference,  # input arg.
                          data_predict = data_predict,  # Calculated.
