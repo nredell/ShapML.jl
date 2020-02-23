@@ -24,17 +24,18 @@ Pkg.add("ShapML")
 ```
 
 
+## Documentation
+
+* **[Docs](https://nredell.github.io/ShapML.jl/dev/)**
+
+
 ## Examples
 
 ### Random Forest regression model - Non-parallel
 
-* We'll explain the impact of 13 features from the Boston Housing dataset on the
-predicted outcome `MedV`--or the median value of owner-occupied homes in 1000's--using
-predictions from a trained Random Forest regression model and stochastic Shapley values.
+* We'll explain the impact of 13 features from the Boston Housing dataset on the predicted outcome `MedV`--or the median value of owner-occupied homes in 1000's--using predictions from a trained Random Forest regression model and stochastic Shapley values.
 
-
-* We'll explain a subset of 300 instances and then assess global feature importance
-by aggregating the unique feature importances for each of these instances.
+* We'll explain a subset of 300 instances and then assess global feature importance by aggregating the unique feature importances for each of these instances.
 
 ``` jldoctest
 using ShapML
@@ -88,16 +89,13 @@ data_shap = ShapML.shap(explain = explain,
 show(data_shap, allcols = true)
 ```
 <p align="center">
-    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/shap_output.PNG" alt="shap_output">
+    <img src="shap_output.PNG" alt="shap_output">
 </p>
 
-* Now we'll create several plots that summarize the Shapley results for our Random Forest model.
-These plots will eventually be refined and incorporated into `ShapML`.
+* Now we'll create several plots that summarize the Shapley results for our Random Forest model. These plots will eventually be refined and incorporated into `ShapML`.
 
 * **Global feature importance**
-    + Because Shapley values represent deviations from the average or baseline prediction,
-    plotting their average absolute value for each feature gives a sense of the magnitude with which
-    they affect model predictions across all explained instances.
+    + Because Shapley values represent deviations from the average or baseline prediction, plotting their average absolute value for each feature gives a sense of the magnitude with which they affect model predictions across all explained instances.
 
 ``` jldoctest
 data_plot = DataFrames.by(data_shap, [:feature_name],
@@ -115,14 +113,12 @@ p = plot(data_plot, y = :feature_name, x = :mean_effect, Coord.cartesian(yflip =
 p
 ```
 <p align="center">
-    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/feature_importance.png" alt="feature_importance">
+    <img src="feature_importance.png" alt="feature_importance">
 </p>
 
 
 * **Global feature effects**
-    + The plot below shows how changing the value of the `Rm` feature--the most influential feature overall--affects
-    model predictions (holding the other features constant). Each point represents 1 of our 300 explained instances.
-    The black line is a loess line of best fit to summarize the effect.
+    + The plot below shows how changing the value of the `Rm` feature--the most influential feature overall--affects model predictions (holding the other features constant). Each point represents 1 of our 300 explained instances. The black line is a loess line of best fit to summarize the effect.
 
 ``` jldoctest
 data_plot = data_shap[data_shap.feature_name .== "Rm", :]  # Selecting 1 feature for ease of plotting.
@@ -137,16 +133,14 @@ p = plot(p_line, p_points, Guide.xlabel("Feature value"), Guide.ylabel("Shapley 
 p
 ```
 <p align="center">
-    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/feature_effects.png" alt="feature_effects">
+    <img src="feature_effects.png" alt="feature_effects">
 </p>
 
 ***
 
 ### Random Forest regression model - Parallel
 
-* We'll explain the same dataset with the same model, but this time we'll compute
-the Shapley values in parallel across cores using the built-in distributed computing
-in `ShapML` which implements `Distributed.pmap()` internally.
+* We'll explain the same dataset with the same model, but this time we'll compute the Shapley values in parallel across cores using the built-in distributed computing in `ShapML` which implements `Distributed.pmap()` internally.
 
 * The stochastic Shapley values will be computed in parallel over 6 cores on the same machine.
 
@@ -157,8 +151,7 @@ using Distributed
 addprocs(6)  # 6 cores.
 ```
 
-* The `@everywhere` block of code will load the relevant packages on each core. If
-you use another ML package, you would swap it in for `using MLJ`.
+* The `@everywhere` block of code will load the relevant packages on each core. If you use another ML package, you would swap it in for `using MLJ`.
 
 ``` jldoctest
 @everywhere begin
@@ -200,8 +193,7 @@ fit!(model)
 end
 ```
 
-* Notice that we've set `ShapML.shap(parallel = :samples)` to perform the computation
-in parallel across our 60 Monte Carlo samples.
+* Notice that we've set `ShapML.shap(parallel = :samples)` to perform the computation in parallel across our 60 Monte Carlo samples.
 
 ``` jldoctest
 # ShapML setup.
@@ -226,5 +218,5 @@ data_shap = ShapML.shap(explain = explain,
 show(data_shap, allcols = true)
 ```
 <p align="center">
-    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/shap_output.PNG" alt="shap_output">
+    <img src="shap_output.PNG" alt="shap_output">
 </p>
