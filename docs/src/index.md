@@ -1,3 +1,4 @@
+
 # ShapML.jl
 
 The purpose of `ShapML` is to compute stochastic feature-level Shapley values which
@@ -15,7 +16,6 @@ to compute the stochastic Shapley values for a given instance and model feature.
 * **Speed**:
     + The speed advantage of `ShapML` comes in the form of giving the user the ability to select 1 or more target features of interest and avoid having to compute Shapley values for all model features (i.e., a subset of target features from a trained model will return the same feature-level Shapley values as the full model with all features). This is especially useful in high-dimensional models as the computation of a Shapley value is exponential in the number of features.
 
-
 ## Install
 
 ``` jldoctest
@@ -24,18 +24,14 @@ Pkg.add("ShapML")
 ```
 
 
-## Documentation and Vignettes
-
-* **[Docs](https://nredell.github.io/ShapML.jl/dev/)**
-
-
 ## Examples
 
 ### Random Forest regression model - Non-parallel
 
 * We'll explain the impact of 13 features from the Boston Housing dataset on the
-predicted outcome `MedV`--or the median value of owner-occupied homes in $1000's--using predictions
-from a trained Random Forest regression model and stochastic Shapley values.
+predicted outcome `MedV`--or the median value of owner-occupied homes in 1000's--using
+predictions from a trained Random Forest regression model and stochastic Shapley values.
+
 
 * We'll explain a subset of 300 instances and then assess global feature importance
 by aggregating the unique feature importances for each of these instances.
@@ -92,7 +88,7 @@ data_shap = ShapML.shap(explain = explain,
 show(data_shap, allcols = true)
 ```
 <p align="center">
-    <img src="./assets/shap_output.PNG" alt="shap_output">
+    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/shap_output.PNG" alt="shap_output">
 </p>
 
 * Now we'll create several plots that summarize the Shapley results for our Random Forest model.
@@ -119,7 +115,7 @@ p = plot(data_plot, y = :feature_name, x = :mean_effect, Coord.cartesian(yflip =
 p
 ```
 <p align="center">
-    <img src="./assets/feature_importance_example.png" alt="feature_importance">
+    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/feature_importance.png" alt="feature_importance">
 </p>
 
 
@@ -141,7 +137,7 @@ p = plot(p_line, p_points, Guide.xlabel("Feature value"), Guide.ylabel("Shapley 
 p
 ```
 <p align="center">
-    <img src="./assets/feature_effects.png" alt="feature_effects">
+    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/feature_effects.png" alt="feature_effects">
 </p>
 
 ***
@@ -230,5 +226,5 @@ data_shap = ShapML.shap(explain = explain,
 show(data_shap, allcols = true)
 ```
 <p align="center">
-    <img src="./assets/shap_output.PNG" alt="shap_output">
+    <img src="https://github.com/nredell/ShapML.jl/tree/master/tools/shap_output.PNG" alt="shap_output">
 </p>
