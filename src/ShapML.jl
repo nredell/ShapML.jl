@@ -125,19 +125,6 @@ function shap(;explain::DataFrame,
 
     elseif parallel == :samples
 
-        # @everywhere begin
-        #     explain = $explain
-        #     reference = $reference
-        #     n_instances = $n_instances
-        #     n_features = $n_features
-        #     target_features = $target_features
-        #     feature_names = $feature_names
-        #     feature_names_symbol = $feature_names_symbol
-        #     sample_size = $sample_size
-        #     parallel = :samples
-        #     seeds = $seeds
-        # end
-
         data_sample = pmap(_i -> _shap_sample(explain,
                                               reference,
                                               n_instances,
