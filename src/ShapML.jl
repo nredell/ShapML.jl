@@ -98,9 +98,9 @@ function shap(;explain::DataFrame,
         parallel = parallel[1]  # Default is a non-parallel computation.
     end
 
-     if !any(parallel .== [:none, :samples])
+    if !any(parallel .== [:none, :samples])
          error(""""parallel" should be one of "[:none, :samples]".""")
-     end
+    end
     #--------------------------------------------------------------------------
     # Create a vector of random seeds to get reproducible results with both
     # serial and parallel computations.
@@ -125,18 +125,18 @@ function shap(;explain::DataFrame,
 
     elseif parallel == :samples
 
-        @everywhere begin
-            explain = $explain
-            reference = $reference
-            n_instances = $n_instances
-            n_features = $n_features
-            target_features = $target_features
-            feature_names = $feature_names
-            feature_names_symbol = $feature_names_symbol
-            sample_size = $sample_size
-            parallel = :samples
-            seeds = $seeds
-        end
+        # @everywhere begin
+        #     explain = $explain
+        #     reference = $reference
+        #     n_instances = $n_instances
+        #     n_features = $n_features
+        #     target_features = $target_features
+        #     feature_names = $feature_names
+        #     feature_names_symbol = $feature_names_symbol
+        #     sample_size = $sample_size
+        #     parallel = :samples
+        #     seeds = $seeds
+        # end
 
         data_sample = pmap(_i -> _shap_sample(explain,
                                               reference,
