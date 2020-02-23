@@ -85,7 +85,6 @@ reference = select(reference, Not(Symbol(outcome_name)))
 sample_size = 60  # Number of Monte Carlo samples.
 #------------------------------------------------------------------------------
 # Compute stochastic Shapley values.
-Random.seed!(224)
 data_shap = ShapML.shap(explain = explain,
                         reference = reference,
                         model = model,
