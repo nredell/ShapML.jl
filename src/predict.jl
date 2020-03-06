@@ -1,7 +1,7 @@
 # Internal prediction function. Used at the end of shap().
 using Statistics
 
-function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer)
+function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer, precision::Union{Integer, Nothing})
 
   data_model = data_predict[:, 1:n_features]
   data_meta = data_predict[:, (n_features + 1):size(data_predict, 2)]
@@ -33,6 +33,12 @@ function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict
 
   data_predicted.intercept = repeat([intercept], size(data_predicted, 1))
 
-  return data_predicted
+  # Optional rounding of Shapley results to reduce dataset size.
+  if precision !== nothing
+    data_predicted.intercept .= round.(data_predicted.intercept, digits = precision)
+    data_predicted.shap_effect .= round.(data_predicted.shap_effect, digits = precision)
+    data_predicted.shap_effect_sd .= round.(data_predicted.shap_effect_sd, digits = precision)
+  end
 
-end
+  return data_predicted
+end  # End _predict()

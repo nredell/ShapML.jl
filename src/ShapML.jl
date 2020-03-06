@@ -16,8 +16,10 @@ export shap
          predict_function,
          target_features::Union{Vector, Nothing} = nothing,
          sample_size::Integer = 60,
-         parallel::Symbol = [:none, :samples],
-         seed::Integer = 1)
+         parallel::Symbol = [:none, :samples, :features, :both],
+         seed::Integer = 1,
+         precision::Union{Integer, Nothing} = nothing
+         )
 
 Compute stochastic feature-level Shapley values for any ML model.
 
@@ -28,8 +30,9 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `predict_function`: A wrapper function that takes 2 required positional arguments–(1) the trained model from `model` and (2) a DataFrame of instances with the same format as `explain`. The function should return a 1-column DataFrame of model predictions; the column name does not matter.
 - `target_features`: Optional. An `Array{String, 1}` of model features that is a subset of feature names in `explain` for which Shapley values will be computed. For high-dimensional models, selecting a subset of features may dramatically speed up computation time. The default behavior is to return Shapley values for all instances and features in `explain`.
 - `sample_size::Integer`: The number of Monte Carlo samples used to compute the stochastic Shapley values for each feature.
-- `parallel::Union{Symbol, Nothing}`: One of [:none, :samples]. Whether to perform the calculation serially (:none) or in parallel (:samples) with `pmap()`.
+- `parallel::Union{Symbol, Nothing}`: One of [:none, :samples, :features, :both]. Whether to perform the calculation serially (:none) or in parallel over Monte Carlo samples (:samples) with `pmap()` and/or multi-threaded over target features (:features) with @threads or :both.
 - `seed::Integer`: A number passed to `Random.seed!()` to get reproducible results.
+- `precision::Union{Integer, Nothing}`: The number of digits to `round()` results in the ouput (to reduce the size of the returned DataFrame).
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -47,7 +50,8 @@ function shap(;explain::DataFrame,
               target_features::Union{Vector, Nothing} = nothing,
               sample_size::Integer = 60,
               parallel::Union{Symbol, Nothing} = nothing,
-              seed::Integer = 1
+              seed::Integer = 1,
+              precision::Union{Integer, Nothing} = nothing
               )
 
     feature_names = String.(names(explain))
@@ -68,6 +72,7 @@ function shap(;explain::DataFrame,
         end
     end
     #----------------------------------------------------------------------------
+    n_instances_explain = size(explain, 1)
     n_features = size(explain, 2)
     #----------------------------------------------------------------------------
     if (reference === nothing)  # Default is to explain all instances in 'explain' without a specific reference group.
@@ -98,22 +103,25 @@ function shap(;explain::DataFrame,
         parallel = parallel[1]  # Default is a non-parallel computation.
     end
 
-    if !any(parallel .== [:none, :samples])
-         error(""""parallel" should be one of "[:none, :samples]".""")
+    if !any(parallel .== [:none, :samples, :features, :both])
+         error(""""parallel" should be one of [:none, :samples, :features].""")
     end
     #--------------------------------------------------------------------------
     # Create a vector of random seeds to get reproducible results with both
-    # serial and parallel computations.
+    # serial and parallel computations. This is not the perfect solution because there
+    # could potentially be correlation between the seeds, but the effect on randomness,
+    # if any, will be small. To-do: Pass in seed generator objects.
     Random.seed!(seed)
     seeds = abs.(rand(Int, sample_size))
     #--------------------------------------------------------------------------
     # Main Shapley value computation from _shap_sample(). This code is either
     # run serially or in parallel.
-    if parallel == :none
+    if any(parallel .== [:none, :features])
 
         data_sample = _shap_sample(explain,
                                    reference,
                                    n_instances,
+                                   n_instances_explain,
                                    n_features,
                                    target_features,
                                    feature_names,
@@ -123,11 +131,12 @@ function shap(;explain::DataFrame,
                                    seeds
                                    )
 
-    elseif parallel == :samples
+    elseif any(parallel .== [:samples, :both])
 
         data_sample = pmap(_i -> _shap_sample(explain,
                                               reference,
                                               n_instances,
+                                              n_instances_explain,
                                               n_features,
                                               target_features,
                                               feature_names,
@@ -142,16 +151,17 @@ function shap(;explain::DataFrame,
     # a single data.frame for the user-defined predict() function.
     data_predict = vcat(data_sample...)
 
-    if parallel == :samples
+    if any(parallel .== [:samples, :both])
         data_predict = vcat(data_predict...)
-        data_predict.sample = repeat(1:sample_size, inner = size(explain, 1) * length(target_features) * 2)
+        data_predict.sample = repeat(1:sample_size, inner = n_instances_explain * length(target_features) * 2)
     end
 
     data_shap = _predict(reference = reference,  # input arg.
                          data_predict = data_predict,  # Calculated.
                          model = model,  # input arg.
                          predict_function = predict_function,  # input arg.
-                         n_features = n_features  # Calculated.
+                         n_features = n_features,  # Calculated.
+                         precision = precision  # input arg.
                          )
     #--------------------------------------------------------------------------
     # Melt the input 'explain' data.frame for merging the model features to the Shapley values.
@@ -159,7 +169,7 @@ function shap(;explain::DataFrame,
     rename!(data_merge, Dict(:variable => "feature_name", :value => "feature_value"))
     data_merge.feature_name = String.(data_merge.feature_name)  # Coerce for merging.
 
-    data_merge.index = repeat(1:size(explain, 1), n_features)  # The merge index for each instance.
+    data_merge.index = repeat(1:n_instances_explain, n_features)  # The merge index for each instance.
 
     # Each instance in explain has one Shapley value per instance in a long data.frame format.
     data_out = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
