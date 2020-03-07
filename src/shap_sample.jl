@@ -4,6 +4,7 @@ function _shap_sample(explain::DataFrame,
                       n_instances::Int64,
                       n_instances_explain::Int64,
                       n_features::Int64,
+                      n_target_features::Int64,
                       target_features::Array{String,1},
                       feature_names::Array{String,1},
                       feature_names_symbol::Array{Symbol,1},
@@ -43,11 +44,11 @@ function _shap_sample(explain::DataFrame,
 
         #----------------------------------------------------------------------
         # Inner loop sampling over target features, creating Frankenstein instances.
-        data_sample_feature = Array{Any}(undef, length(target_features))
+        data_sample_feature = Array{Any}(undef, n_target_features)
 
         if any(parallel .== [:none, :samples])  # Single threaded based on user input.
 
-            for j in 1:length(target_features)  # Loop over model features in target_features.
+            for j in 1:n_target_features  # Loop over model features in target_features.
 
                 data_sample_feature[j] = _shap_sample_features(explain_instances,
                                                                reference_instance,
@@ -56,14 +57,13 @@ function _shap_sample(explain::DataFrame,
                                                                target_features[j],
                                                                feature_names,
                                                                feature_names_symbol,
-                                                               feature_names_random,
-                                                               i
+                                                               feature_names_random
                                                                )
             end  # End single-threaded loop over target features.
 
         elseif any(parallel .== [:features, :both])  # Multi-threaded based on user input
 
-            Base.Threads.@threads for j in 1:length(target_features)  # Loop over model features in target_features.
+            Base.Threads.@threads for j in 1:n_target_features  # Loop over model features in target_features.
 
                 data_sample_feature[j] = _shap_sample_features(explain_instances,
                                                                reference_instance,
@@ -72,14 +72,19 @@ function _shap_sample(explain::DataFrame,
                                                                target_features[j],
                                                                feature_names,
                                                                feature_names_symbol,
-                                                               feature_names_random,
-                                                               i
+                                                               feature_names_random
                                                                )
             end  # End multi-threaded loop over target features.
         end  # End inner loop with feature shuffing for each Monte Carlo sample.
         #----------------------------------------------------------------------
-
         data_sample[i] = vcat(data_sample_feature...)
+
+        # Two Frankenstein instances per explained instance per target feature.
+        # The "* 2" multiplier is because each instance has two Frankenstein instances.
+        data_sample[i].index = repeat(repeat(1:n_instances_explain, outer = 2), outer = n_target_features)
+        data_sample[i].feature_group = repeat(repeat(["real_target", "fake_target"], inner = n_instances_explain), outer = n_target_features)
+        data_sample[i].feature_name = repeat(target_features, inner = n_instances_explain * 2)
+        data_sample[i].sample = repeat(repeat([i], n_instances_explain * 2), outer = n_target_features)
 
     end  # End 'i' loop for data_sample.
 
@@ -96,7 +101,6 @@ function _shap_sample_features(explain_instances::DataFrame,
                                feature_names::Array{String,1},
                                feature_names_symbol::Array{Symbol,1},
                                feature_names_random::Array{String,1},
-                               i::Int64
                                )
 
         target_feature_index_shuffled = (1:n_features)[target_features .== feature_names_random][1]
@@ -111,10 +115,6 @@ function _shap_sample_features(explain_instances::DataFrame,
         # is the difference in predicted values between 1 Frankenstein instance
         # that also replaces the target feature from the reference group and 1 Frankenstein
         # instance where the target feature remains unchanged from its value in explain.
-
-        # Initialize the instances to be explained.
-        # THIS WAS REMOVED TO REDUCE MEMORY CONSUMPTION.
-        # explain_instance_real_target = copy(explain_instances)
 
         # Only create a Frankenstein instance if the target is not the last feature and there is actually
         # one or more features to the right of the target to replace with the reference.
@@ -133,13 +133,5 @@ function _shap_sample_features(explain_instances::DataFrame,
         # Re-order columns for the user-defined predict() function and concatenate them vertically.
         explain_instances = vcat(explain_instances[:, feature_names_symbol], explain_instances_fake_target[:, feature_names_symbol])
 
-        # Two Frankenstein instances per explained instance.
-        explain_instances.index = repeat(1:n_instances_explain, outer = 2)
-        explain_instances.feature_group = repeat(["real_target", "fake_target"], inner = n_instances_explain)
-        explain_instances.feature_name = repeat([target_features], size(explain_instances, 1))
-        #data_explain_instance.causal = repeat([0], size(data_explain_instance, 1))
-        #data_explain_instance.causal_type = repeat([missing], size(data_explain_instance, 1))
-        explain_instances.sample = repeat([i], size(explain_instances, 1))
-
-        return(explain_instances)
+        return explain_instances
 end  # End _shap_sample_features

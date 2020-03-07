@@ -74,6 +74,7 @@ function shap(;explain::DataFrame,
     #----------------------------------------------------------------------------
     n_instances_explain = size(explain, 1)
     n_features = size(explain, 2)
+    n_target_features = length(target_features)
     #----------------------------------------------------------------------------
     if (reference === nothing)  # Default is to explain all instances in 'explain' without a specific reference group.
 
@@ -104,7 +105,7 @@ function shap(;explain::DataFrame,
     end
 
     if !any(parallel .== [:none, :samples, :features, :both])
-         error(""""parallel" should be one of [:none, :samples, :features].""")
+         error(""""parallel" should be one of [:none, :samples, :features, :both].""")
     end
     #--------------------------------------------------------------------------
     # Create a vector of random seeds to get reproducible results with both
@@ -123,6 +124,7 @@ function shap(;explain::DataFrame,
                                    n_instances,
                                    n_instances_explain,
                                    n_features,
+                                   n_target_features,
                                    target_features,
                                    feature_names,
                                    feature_names_symbol,
@@ -138,6 +140,7 @@ function shap(;explain::DataFrame,
                                               n_instances,
                                               n_instances_explain,
                                               n_features,
+                                              n_target_features,
                                               target_features,
                                               feature_names,
                                               feature_names_symbol,
@@ -153,7 +156,7 @@ function shap(;explain::DataFrame,
 
     if any(parallel .== [:samples, :both])
         data_predict = vcat(data_predict...)
-        data_predict.sample = repeat(1:sample_size, inner = n_instances_explain * length(target_features) * 2)
+        data_predict.sample = repeat(1:sample_size, inner = n_instances_explain * n_target_features * 2)
     end
 
     data_shap = _predict(reference = reference,  # input arg.
@@ -171,7 +174,7 @@ function shap(;explain::DataFrame,
 
     data_merge.index = repeat(1:n_instances_explain, n_features)  # The merge index for each instance.
 
-    # Each instance in explain has one Shapley value per instance in a long data.frame format.
+    # Each instance in explain has one Shapley value per instance in a long DataFrame format.
     data_out = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
 
     # Re-order columns for easier reading.
