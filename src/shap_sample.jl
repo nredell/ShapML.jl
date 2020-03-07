@@ -55,8 +55,6 @@ function _shap_sample(explain::DataFrame,
                                                                n_instances_explain,
                                                                n_features,
                                                                target_features[j],
-                                                               feature_names,
-                                                               feature_names_symbol,
                                                                feature_names_random
                                                                )
             end  # End single-threaded loop over target features.
@@ -70,8 +68,6 @@ function _shap_sample(explain::DataFrame,
                                                                n_instances_explain,
                                                                n_features,
                                                                target_features[j],
-                                                               feature_names,
-                                                               feature_names_symbol,
                                                                feature_names_random
                                                                )
             end  # End multi-threaded loop over target features.
@@ -81,6 +77,9 @@ function _shap_sample(explain::DataFrame,
 
         # Two Frankenstein instances per explained instance per target feature.
         # The "* 2" multiplier is because each instance has two Frankenstein instances.
+
+        # Re-order columns for the user-defined predict() function
+        data_sample[i] = data_sample[i][:, feature_names_symbol]
         data_sample[i].index = repeat(repeat(1:n_instances_explain, outer = 2), outer = n_target_features)
         data_sample[i].feature_group = repeat(repeat(["real_target", "fake_target"], inner = n_instances_explain), outer = n_target_features)
         data_sample[i].feature_name = repeat(target_features, inner = n_instances_explain * 2)
@@ -98,8 +97,6 @@ function _shap_sample_features(explain_instances::DataFrame,
                                n_instances_explain::Int64,
                                n_features::Int64,
                                target_features::String,
-                               feature_names::Array{String,1},
-                               feature_names_symbol::Array{Symbol,1},
                                feature_names_random::Array{String,1},
                                )
 
@@ -130,8 +127,7 @@ function _shap_sample_features(explain_instances::DataFrame,
         explain_instances_fake_target = copy(explain_instances)
         explain_instances_fake_target[:, target_feature_index_shuffled] .= reference_instance[!, target_feature_index_shuffled]
         #------------------------------------------------------------------
-        # Re-order columns for the user-defined predict() function and concatenate them vertically.
-        explain_instances = vcat(explain_instances[:, feature_names_symbol], explain_instances_fake_target[:, feature_names_symbol])
+        explain_instances = vcat(explain_instances, explain_instances_fake_target)
 
         return explain_instances
 end  # End _shap_sample_features
