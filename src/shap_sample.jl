@@ -38,6 +38,8 @@ function _shap_sample(explain::DataFrame,
 
         # Shuffle the column order for the randomly selected instance.
         reference_instance = reference[[reference_index], feature_indices_random]
+        # Make the reference instance have the same row dimension as "explain" for DataFrame concatenation.
+        reference_instance = repeat(reference_instance, n_instances_explain)
 
         # For the instance(s) to be explained, shuffle the columns to match the randomly selected and shuffled instance.
         explain_instances = explain[!, feature_indices_random]
@@ -113,7 +115,7 @@ function _shap_sample_features(explain_instances::DataFrame,
         # one or more features to the right of the target to replace with the reference.
         if target_feature_index_shuffled < n_features
           explain_instances = hcat(explain_instances[:, 1:target_feature_index_shuffled],
-                                   repeat(reference_instance[:, (target_feature_index_shuffled + 1):n_features], n_instances_explain))
+                                   reference_instance[:, (target_feature_index_shuffled + 1):n_features])
         end
 
         # These instances are otherwise the same as the Frankenstein instance created above with the
@@ -121,7 +123,7 @@ function _shap_sample_features(explain_instances::DataFrame,
         # instance. The difference in model predictions between these two Frankenstein instances is
         # what gives us the stochastic Shapley value approximation.
         explain_instances_fake_target = copy(explain_instances)
-        explain_instances_fake_target[:, target_feature_index_shuffled] .= reference_instance[!, target_feature_index_shuffled]
+        explain_instances_fake_target[:, target_feature_index_shuffled] = reference_instance[!, target_feature_index_shuffled]
         #------------------------------------------------------------------
         explain_instances = vcat(explain_instances, explain_instances_fake_target)
 
