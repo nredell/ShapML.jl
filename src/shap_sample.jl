@@ -80,7 +80,7 @@ function _shap_sample(explain::DataFrame,
         # The "* 2" multiplier is because each instance has two Frankenstein instances.
 
         # Re-order columns for the user-defined predict() function
-        data_sample[i] = data_sample[i][:, feature_names_symbol]
+        data_sample[i] = data_sample[i][!, feature_names_symbol]
         data_sample[i].index = repeat(repeat(1:n_instances_explain, outer = 2), outer = n_target_features)
         data_sample[i].feature_group = repeat(repeat(["real_target", "fake_target"], inner = n_instances_explain), outer = n_target_features)
         data_sample[i].feature_name = repeat(target_features, inner = n_instances_explain * 2)
@@ -114,8 +114,8 @@ function _shap_sample_features(explain_instances::DataFrame,
         # Only create a Frankenstein instance if the target is not the last feature and there is actually
         # one or more features to the right of the target to replace with the reference.
         if target_feature_index_shuffled < n_features
-          explain_instances = hcat(explain_instances[:, 1:target_feature_index_shuffled],
-                                   reference_instance[:, (target_feature_index_shuffled + 1):n_features])
+          explain_instances = hcat(explain_instances[!, 1:target_feature_index_shuffled],
+                                   reference_instance[!, (target_feature_index_shuffled + 1):n_features], copycols = false)
         end
 
         # These instances are otherwise the same as the Frankenstein instance created above with the
@@ -123,7 +123,7 @@ function _shap_sample_features(explain_instances::DataFrame,
         # instance. The difference in model predictions between these two Frankenstein instances is
         # what gives us the stochastic Shapley value approximation.
         explain_instances_fake_target = copy(explain_instances)
-        explain_instances_fake_target[:, target_feature_index_shuffled] = reference_instance[!, target_feature_index_shuffled]
+        explain_instances_fake_target[!, target_feature_index_shuffled] = reference_instance[!, target_feature_index_shuffled]
         #------------------------------------------------------------------
         explain_instances = vcat(explain_instances, explain_instances_fake_target)
 

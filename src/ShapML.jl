@@ -169,7 +169,7 @@ function shap(;explain::DataFrame,
     data_out = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
 
     # Re-order columns for easier reading.
-    data_out = data_out[:, [:index, :feature_name, :feature_value, :shap_effect, :shap_effect_sd, :intercept]]
+    DataFrames.select!(data_out, [:index, :feature_name, :feature_value, :shap_effect, :shap_effect_sd, :intercept])
 
     return data_out
 
