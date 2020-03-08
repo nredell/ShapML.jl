@@ -3,14 +3,14 @@ using Statistics
 
 function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer, precision::Union{Integer, Nothing})
 
-  data_model = data_predict[!, 1:n_features]
-  data_meta = data_predict[!, (n_features + 1):size(data_predict, 2)]
+  data_model = data_predict[:, 1:n_features]
+  data_meta = data_predict[:, (n_features + 1):size(data_predict, 2)]
 
   # User-defined predict() function
   data_predicted = predict_function(model, data_model)
 
   # Returns a length 1 numeric vector of the average prediction--i.e., intercept--from the reference group.
-  intercept = Statistics.mean(data_predicted[!, 1])
+  intercept = Statistics.mean(data_predicted[:, 1])
 
   data_predicted = hcat(data_meta, data_predicted, copycols = false)
   #----------------------------------------------------------------------------
