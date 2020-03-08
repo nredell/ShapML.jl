@@ -42,6 +42,7 @@ function _shap_sample(explain::DataFrame,
         # For the instance(s) to be explained, shuffle the columns to match the randomly selected and shuffled instance.
         explain_instances = explain[!, feature_indices_random]
 
+        target_feature_indices_shuffled = map(x -> (1:n_features)[x .== feature_names_random][1], target_features)
         #----------------------------------------------------------------------
         # Inner loop sampling over target features, creating Frankenstein instances.
         data_sample_feature = Array{Any}(undef, n_target_features)
@@ -54,8 +55,7 @@ function _shap_sample(explain::DataFrame,
                                                                reference_instance,
                                                                n_instances_explain,
                                                                n_features,
-                                                               target_features[j],
-                                                               feature_names_random
+                                                               target_feature_indices_shuffled[j]
                                                                )
             end  # End single-threaded loop over target features.
 
@@ -67,8 +67,7 @@ function _shap_sample(explain::DataFrame,
                                                                reference_instance,
                                                                n_instances_explain,
                                                                n_features,
-                                                               target_features[j],
-                                                               feature_names_random
+                                                               target_feature_indices_shuffled[j]
                                                                )
             end  # End multi-threaded loop over target features.
         end  # End inner loop with feature shuffing for each Monte Carlo sample.
@@ -96,11 +95,8 @@ function _shap_sample_features(explain_instances::DataFrame,
                                reference_instance::DataFrame,
                                n_instances_explain::Int64,
                                n_features::Int64,
-                               target_features::String,
-                               feature_names_random::Array{String,1},
+                               target_feature_index_shuffled::Int
                                )
-
-        target_feature_index_shuffled = (1:n_features)[target_features .== feature_names_random][1]
 
         # Create the Frankenstein instances: a combination of the instance to be explained with the
         # reference instance to create a new instance that [likely] does not exist in the dataset.
@@ -117,7 +113,7 @@ function _shap_sample_features(explain_instances::DataFrame,
         # one or more features to the right of the target to replace with the reference.
         if target_feature_index_shuffled < n_features
           explain_instances = hcat(explain_instances[:, 1:target_feature_index_shuffled],
-                                   repeat(reference_instance[:, (target_feature_index_shuffled + 1):(n_features)], n_instances_explain))
+                                   repeat(reference_instance[:, (target_feature_index_shuffled + 1):n_features], n_instances_explain))
         end
 
         # These instances are otherwise the same as the Frankenstein instance created above with the

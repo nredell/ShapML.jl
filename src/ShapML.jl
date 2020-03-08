@@ -79,29 +79,20 @@ function shap(;explain::DataFrame,
     if (reference === nothing)  # Default is to explain all instances in 'explain' without a specific reference group.
 
         reference = copy(explain)
-        n_instances = size(reference, 1)
 
     else
-
-        if !isa(reference, DataFrame)
-            error(""""reference" should be a "DataFrame" object.""")
-        end
 
         if names(explain) != names(reference)
             error(""""explain" and "reference" should have the same model features and no outcome column.""")
         end
-
-        n_instances = size(reference, 1)
     end
+
+    n_instances = size(reference, 1)
     #--------------------------------------------------------------------------
     # Parallel computation setup; the type of parallelization, if any, depends on
     # the 'parallel' argument.
     if (parallel === nothing)
         parallel = :none
-    end
-
-    if isa(parallel, Vector)
-        parallel = parallel[1]  # Default is a non-parallel computation.
     end
 
     if !any(parallel .== [:none, :samples, :features, :both])
