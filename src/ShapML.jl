@@ -4,112 +4,6 @@ using Distributed
 using DataFrames
 using Random
 
-
-
-
-
-
-
-
-
-
-
-using Random
-using DataFrames
-using RCall
-
-n_features = [100]#[10, 20, 100]#, 200)
-n_instances = [1000]#[1, 100, 1000]#, 5000)
-n_models = length(n_features)
-n_simulations = 3
-seed = 1
-
-n_monte_carlo = 20
-
-R"""
-library(fastshap)
-library(ranger)
-
-n_features <- 100# c(10, 20, 100)#, 200)
-n_instances <- 1000# c(1, 100, 1000)#, 5000)
-n_models <- length(n_features)
-n_simulations <- 3
-seed <- 1
-
-data_train <- vector("list", n_models)
-models <- vector("list", n_models)
-
-for(i in 1:n_models) {
-
-  data_train[[i]] <- fastshap::gen_friedman(n_samples = max(n_instances), n_features[i], seed = seed)
-
-  models[[i]] <- ranger::ranger(y ~ ., data = data_train[[i]], seed = seed)
-}
-
-names(data_train) <- n_features
-names(models) <- n_features
-"""
-
-R"""
-predict_fun_julia <- function(model, data) {
-
-  data_pred = data.frame("y_pred" = predict(model, data)$predictions)
-  return(data_pred)
-}
-"""
-
-R"""
-conditions <- expand.grid("n_features" = n_features, "n_instances" = n_instances)
-conditions$condition <- 1:nrow(conditions)
-# We'll remove the 5000 instance, 200 feature condition to keep the runtime reasonable.
-# conditions <- conditions[-nrow(conditions), ]
-
-n_conditions <- nrow(conditions)
-data_explain <- vector("list", n_conditions)
-models_condition <- vector("list", n_conditions)
-
-for(i in 1:n_conditions) {
-
-  data_condition <- data_train[[which(names(data_train) == as.character(conditions$n_features[i]))]]
-  data_explain[[i]] <- data_condition[1:conditions$n_instances[i], !names(data_condition) %in% "y"]
-  models_condition[[i]] <- models[[which(names(models) == as.character(conditions$n_features[i]))]]
-}
-"""
-
-data_explain = RCall.reval("data_explain")
-
-models_condition = RCall.reval("models_condition")
-
-n_conditions = RCall.reval("n_conditions")
-n_conditions = convert(Integer, n_conditions)
-
-for i in 1:n_conditions
-    data_explain[i] = convert(DataFrame, data_explain[i])
-end
-
-predict_fun_julia = RCall.reval("predict_fun_julia")
-predict_fun_julia = convert(Function, predict_fun_julia)
-
-target_features = nothing
-parallel = nothing
-seed = 1
-precision = nothing
-
-i = 1
-predict_function = predict_fun_julia
-explain = convert(DataFrame, data_explain[1])
-reference = convert(DataFrame, data_explain[1])
-model = models_condition[i]
-sample_size = n_monte_carlo
-
-
-
-
-
-
-
-
-
 include("shap_sample.jl")  # Load _shap_sample().
 include("predict.jl")  # Load _predict().
 include("aggregate.jl")  # Load _aggregate().
@@ -120,7 +14,7 @@ export shap
     shap(explain::DataFrame,
          reference::Union{DataFrame, Nothing} = nothing,
          model,
-         predict_function,
+         predict_function::Function,
          target_features::Union{Vector, Nothing} = nothing,
          sample_size::Integer = 60,
          parallel::Symbol = [:none, :samples, :features, :both],
@@ -153,7 +47,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 function shap(;explain::DataFrame,
               reference::Union{DataFrame, Nothing} = nothing,
               model,
-              predict_function,
+              predict_function::Function,
               target_features::Union{Vector, Nothing} = nothing,
               sample_size::Integer = 60,
               parallel::Union{Symbol, Nothing} = nothing,
