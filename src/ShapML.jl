@@ -4,8 +4,115 @@ using Distributed
 using DataFrames
 using Random
 
-include("predict.jl")  # Load _predict().
+
+
+
+
+
+
+
+
+
+
+using Random
+using DataFrames
+using RCall
+
+n_features = [100]#[10, 20, 100]#, 200)
+n_instances = [1000]#[1, 100, 1000]#, 5000)
+n_models = length(n_features)
+n_simulations = 3
+seed = 1
+
+n_monte_carlo = 20
+
+R"""
+library(fastshap)
+library(ranger)
+
+n_features <- 100# c(10, 20, 100)#, 200)
+n_instances <- 1000# c(1, 100, 1000)#, 5000)
+n_models <- length(n_features)
+n_simulations <- 3
+seed <- 1
+
+data_train <- vector("list", n_models)
+models <- vector("list", n_models)
+
+for(i in 1:n_models) {
+
+  data_train[[i]] <- fastshap::gen_friedman(n_samples = max(n_instances), n_features[i], seed = seed)
+
+  models[[i]] <- ranger::ranger(y ~ ., data = data_train[[i]], seed = seed)
+}
+
+names(data_train) <- n_features
+names(models) <- n_features
+"""
+
+R"""
+predict_fun_julia <- function(model, data) {
+
+  data_pred = data.frame("y_pred" = predict(model, data)$predictions)
+  return(data_pred)
+}
+"""
+
+R"""
+conditions <- expand.grid("n_features" = n_features, "n_instances" = n_instances)
+conditions$condition <- 1:nrow(conditions)
+# We'll remove the 5000 instance, 200 feature condition to keep the runtime reasonable.
+# conditions <- conditions[-nrow(conditions), ]
+
+n_conditions <- nrow(conditions)
+data_explain <- vector("list", n_conditions)
+models_condition <- vector("list", n_conditions)
+
+for(i in 1:n_conditions) {
+
+  data_condition <- data_train[[which(names(data_train) == as.character(conditions$n_features[i]))]]
+  data_explain[[i]] <- data_condition[1:conditions$n_instances[i], !names(data_condition) %in% "y"]
+  models_condition[[i]] <- models[[which(names(models) == as.character(conditions$n_features[i]))]]
+}
+"""
+
+data_explain = RCall.reval("data_explain")
+
+models_condition = RCall.reval("models_condition")
+
+n_conditions = RCall.reval("n_conditions")
+n_conditions = convert(Integer, n_conditions)
+
+for i in 1:n_conditions
+    data_explain[i] = convert(DataFrame, data_explain[i])
+end
+
+predict_fun_julia = RCall.reval("predict_fun_julia")
+predict_fun_julia = convert(Function, predict_fun_julia)
+
+target_features = nothing
+parallel = nothing
+seed = 1
+precision = nothing
+
+i = 1
+predict_function = predict_fun_julia
+explain = convert(DataFrame, data_explain[1])
+reference = convert(DataFrame, data_explain[1])
+model = models_condition[i]
+sample_size = n_monte_carlo
+
+
+
+
+
+
+
+
+
 include("shap_sample.jl")  # Load _shap_sample().
+include("predict.jl")  # Load _predict().
+include("aggregate.jl")  # Load _aggregate().
 
 export shap
 
@@ -110,40 +217,40 @@ function shap(;explain::DataFrame,
     # run serially or in parallel.
     if any(parallel .== [:none, :features])
 
-        data_sample = _shap_sample(explain,
-                                   reference,
-                                   n_instances,
-                                   n_instances_explain,
-                                   n_features,
-                                   n_target_features,
-                                   target_features,
-                                   feature_names,
-                                   feature_names_symbol,
-                                   sample_size,
-                                   parallel,
-                                   seeds
-                                   )
+        data_predict = _shap_sample(explain,
+                                    reference,
+                                    n_instances,
+                                    n_instances_explain,
+                                    n_features,
+                                    n_target_features,
+                                    target_features,
+                                    feature_names,
+                                    feature_names_symbol,
+                                    sample_size,
+                                    parallel,
+                                    seeds
+                                    )
 
     elseif any(parallel .== [:samples, :both])
 
-        data_sample = pmap(_i -> _shap_sample(explain,
-                                              reference,
-                                              n_instances,
-                                              n_instances_explain,
-                                              n_features,
-                                              n_target_features,
-                                              target_features,
-                                              feature_names,
-                                              feature_names_symbol,
-                                              sample_size,
-                                              parallel,
-                                              seeds[_i]
-                                              ), 1:sample_size)
+        data_predict = pmap(_i -> _shap_sample(explain,
+                                               reference,
+                                               n_instances,
+                                               n_instances_explain,
+                                               n_features,
+                                               n_target_features,
+                                               target_features,
+                                               feature_names,
+                                               feature_names_symbol,
+                                               sample_size,
+                                               parallel,
+                                               seeds[_i]
+                                               ), 1:sample_size)
     end  # End Shapley value Monte Carlo calculation.
     #--------------------------------------------------------------------------
     # Put all Frankenstein instances from all instances passed in 'explain' into
     # a single DataFrame for the user-defined predict() function.
-    data_predict = vcat(data_sample...)
+    data_predict = vcat(data_predict...)
 
     if any(parallel .== [:samples, :both])
         data_predict = vcat(data_predict...)
@@ -169,12 +276,12 @@ function shap(;explain::DataFrame,
     data_merge.index = repeat(1:n_instances_explain, n_features)  # The merge index for each instance.
 
     # Each instance in explain has one Shapley value per instance in a long DataFrame format.
-    data_out = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
+    data_shap = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
 
     # Re-order columns for easier reading.
-    DataFrames.select!(data_out, [:index, :feature_name, :feature_value, :shap_effect, :shap_effect_sd, :intercept])
+    DataFrames.select!(data_shap, [:index, :feature_name, :feature_value, :shap_effect, :shap_effect_sd, :intercept])
 
-    return data_out
+    return data_shap
 
 end  # End shap().
 end  # End module.

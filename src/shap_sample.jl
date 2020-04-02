@@ -47,7 +47,7 @@ function _shap_sample(explain::DataFrame,
         target_feature_indices_shuffled = map(x -> (1:n_features)[x .== feature_names_random][1], target_features)
         #----------------------------------------------------------------------
         # Inner loop sampling over target features, creating Frankenstein instances.
-        data_sample_feature = Array{Any}(undef, n_target_features)
+        data_sample_feature = Array{DataFrame}(undef, n_target_features)
 
         if any(parallel .== [:none, :samples])  # Single threaded based on user input.
 
