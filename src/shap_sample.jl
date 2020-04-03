@@ -10,7 +10,11 @@ function _shap_sample(explain::DataFrame,
                       feature_names_symbol::Array{Symbol,1},
                       sample_size::Int64,
                       parallel::Symbol,
-                      seeds::Union{Array, Integer}
+                      seeds::Union{Array, Integer},
+                      chunk::Bool,
+                      model,
+                      predict_function::Function,
+                      precision::Union{Integer, Nothing}
                       )
 
     if any(parallel .== [:none, :features])
@@ -85,6 +89,14 @@ function _shap_sample(explain::DataFrame,
         data_sample[i].feature_group = repeat(repeat(["real_target", "fake_target"], inner = n_instances_explain), outer = n_target_features)
         data_sample[i].feature_name = repeat(target_features, inner = n_instances_explain * 2)
         data_sample[i].sample = repeat(repeat([i], n_instances_explain * 2), outer = n_target_features)
+
+        # This block of code with 'chunk == true' calls predict() once per Monte Carlo
+        # sample which can increase speed and reduce memory on large datasets with many instances and/or features.
+        if chunk
+            # User-defined predict() function.
+            data_predicted = predict_function(model, data_sample[i][:, 1:n_features])
+            data_sample[i] = hcat(data_sample[i][:, (n_features + 1):size(data_sample[i], 2)], data_predicted, copycols = false)
+        end
 
     end  # End 'i' loop for data_sample.
 

@@ -1,26 +1,32 @@
 # Internal prediction function. Used at the end of shap().
 using Statistics
 
-function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict_function, n_features::Integer,
-                  n_target_features::Integer, n_instances_explain::Integer, sample_size::Integer, precision::Union{Integer, Nothing})
+function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict_function::Function, n_features::Integer,
+                  n_target_features::Integer, n_instances_explain::Integer, sample_size::Integer, precision::Union{Integer, Nothing}, chunk::Bool)
 
-  # For robustness across prediction functions from other languages (R and Python),
-  # the modeling dataset needs to be created before it's passed in predict_function().
-  # This is data-to-be-predicted but the name is kept the same throughout to reduce memory.
-  data_predicted = data_predict[:, 1:n_features]
+  if !chunk
+    # For robustness across prediction functions from other languages (R and Python),
+    # the modeling dataset needs to be created before it's passed in predict_function().
+    # This is data-to-be-predicted but the name is kept the same throughout to reduce memory.
+    data_predicted = data_predict[:, 1:n_features]
 
-  # User-defined predict() function.
-  data_predicted = predict_function(model, data_predicted)
+    # User-defined predict() function.
+    data_predicted = predict_function(model, data_predicted)
 
-  # Returns a length 1 numeric vector of the average prediction--i.e., intercept--from the reference group.
-  intercept = Statistics.mean(data_predicted[:, 1])
+    # A dataset with meta-data and the predictions in the last column.
+    data_predicted = hcat(data_predict[:, (n_features + 1):size(data_predict, 2)], data_predicted, copycols = false)
 
-  # A dataset with meta-data and the predictions in the last column.
-  data_predicted = hcat(data_predict[:, (n_features + 1):size(data_predict, 2)], data_predicted, copycols = false)
+  else
+
+    data_predicted = copy(data_predict)
+  end
   #----------------------------------------------------------------------------
   # Cast the data.frame to, for each random sample, take the difference between the Frankenstein
   # instances.
   user_fun_y_pred_name = names(data_predicted)[end]
+
+  # Returns a length 1 numeric vector of the average prediction--i.e., intercept--from the reference group.
+  intercept = Statistics.mean(data_predicted[:, user_fun_y_pred_name])
 
   data_predicted = DataFrames.unstack(data_predicted, [:index, :sample, :feature_name], :feature_group, user_fun_y_pred_name)
 

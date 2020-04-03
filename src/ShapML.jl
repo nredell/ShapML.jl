@@ -19,7 +19,8 @@ export shap
          sample_size::Integer = 60,
          parallel::Symbol = [:none, :samples, :features, :both],
          seed::Integer = 1,
-         precision::Union{Integer, Nothing} = nothing
+         precision::Union{Integer, Nothing} = nothing,
+         chunk::Bool = true
          )
 
 Compute stochastic feature-level Shapley values for any ML model.
@@ -34,6 +35,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `parallel::Union{Symbol, Nothing}`: One of [:none, :samples, :features, :both]. Whether to perform the calculation serially (:none) or in parallel over Monte Carlo samples (:samples) with `pmap()` and/or multi-threaded over target features (:features) with @threads or :both.
 - `seed::Integer`: A number passed to `Random.seed!()` to get reproducible results.
 - `precision::Union{Integer, Nothing}`: The number of digits to `round()` results in the ouput (to reduce the size of the returned DataFrame).
+- `chunk::Bool`: Default `true`. Increases speed on data with many instances and/or features. Calls the `predict()` function once per sample in `sample_size` instead of once per call to `ShapML.shap()`.
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -52,7 +54,8 @@ function shap(;explain::DataFrame,
               sample_size::Integer = 60,
               parallel::Union{Symbol, Nothing} = nothing,
               seed::Integer = 1,
-              precision::Union{Integer, Nothing} = nothing
+              precision::Union{Integer, Nothing} = nothing,
+              chunk::Bool = true
               )
 
     feature_names = String.(names(explain))
@@ -122,7 +125,11 @@ function shap(;explain::DataFrame,
                                     feature_names_symbol,
                                     sample_size,
                                     parallel,
-                                    seeds
+                                    seeds,
+                                    chunk,
+                                    model,  # chunk = true.
+                                    predict_function,  # chunk = true.
+                                    precision  # chunk = true.
                                     )
 
     elseif any(parallel .== [:samples, :both])
@@ -138,7 +145,11 @@ function shap(;explain::DataFrame,
                                                feature_names_symbol,
                                                sample_size,
                                                parallel,
-                                               seeds[_i]
+                                               seeds[_i],
+                                               chunk,
+                                               model,  # chunk = true.
+                                               predict_function,  # chunk = true.
+                                               precision  # chunk = true.
                                                ), 1:sample_size)
     end  # End Shapley value Monte Carlo calculation.
     #--------------------------------------------------------------------------
@@ -159,7 +170,8 @@ function shap(;explain::DataFrame,
                          n_target_features = n_target_features,  # Calculated.
                          n_instances_explain = n_instances_explain,  # Calculated.
                          sample_size = sample_size,  # input arg.
-                         precision = precision  # input arg.
+                         precision = precision,  # input arg.
+                         chunk = chunk  # input arg.
                          )
     #--------------------------------------------------------------------------
     # Melt the input 'explain' data.frame for merging the model features to the Shapley values.
