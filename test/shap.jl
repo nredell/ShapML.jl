@@ -56,11 +56,12 @@ end
     @everywhere begin
         using ShapML
         using DataFrames
+        using Statistics
     end
 
     data = DataFrame(y = 1:10, x1 = 1:10, x2 = 1:10, x3 = 1:10)
 
-    function model_mean(data)
+    @everywhere function model_mean(data)
         y_pred = Array{Float64}(undef, size(data, 1))
         for i in 1:size(data, 1)
             y_pred[i] = mean(data[i, 2:end])
@@ -68,7 +69,7 @@ end
         return DataFrame(y_pred = y_pred)
     end
 
-    function predict_function(model, data)
+    @everywhere function predict_function(model, data)
       data_pred = model(data)
       return data_pred
     end
