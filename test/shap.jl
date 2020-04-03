@@ -70,8 +70,8 @@ end
     end
 
     @everywhere function predict_function(model, data)
-      data_pred = model(data)
-      return data_pred
+        data_pred = model(data)
+        return data_pred
     end
 
     data_shap = ShapML.shap(explain = data[:, 2:end],
