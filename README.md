@@ -22,16 +22,27 @@ to compute the stochastic Shapley values for a given instance and model feature.
 
 ## Install
 
+* **[pkg.julialang.org](https://pkg.julialang.org)**
+
 ``` julia
 using Pkg
 Pkg.add("ShapML")
 ```
 
+* Development
+
+``` julia
+using Pkg
+Pkg.add(PackageSpec(url = "https://github.com/nredell/ShapML.jl"))
+```
 
 ## Documentation and Vignettes
 
 * **[Docs](https://nredell.github.io/ShapML.jl/dev/)**
 
+* **[Consistency with TreeSHAP](https://nredell.github.io/ShapML.jl/dev/vignettes/consistency/)**
+
+* **[Speed - Julia vs Python vs R](https://nredell.github.io/data_science_blog/julia_vs_r_speed_sim.nb.html)**
 
 ## Examples
 
