@@ -47,54 +47,82 @@ using Distributed
     #--------------------------------------------------------------------------
 end
 #------------------------------------------------------------------------------
+@testset "The NULL model returns 0 Shapley values." begin
 
-# @testset "parallel and non-parallel are the same." begin
-#
-#     using Distributed
-#     addprocs(2)
-#
-#     @everywhere begin
-#         using ShapML
-#         using DataFrames
-#         using Statistics
-#     end
-#
-#     data = DataFrame(y = 1:10, x1 = 1:10, x2 = 1:10, x3 = 1:10)
-#
-#     @everywhere function model_mean(data)
-#         y_pred = Array{Float64}(undef, size(data, 1))
-#         for i in 1:size(data, 1)
-#             y_pred[i] = mean(data[i, 2:end])
-#         end
-#         return DataFrame(y_pred = y_pred)
-#     end
-#
-#     @everywhere function predict_function(model, data)
-#         data_pred = model(data)
-#         return data_pred
-#     end
-#
-#     data_shap = ShapML.shap(explain = data[:, 2:end],
-#                             model = model_mean,
-#                             predict_function = predict_function,
-#                             sample_size = 10,
-#                             parallel = :none,
-#                             seed = 1
-#                             )
-#
-#     # data_shap_parallel = ShapML.shap(explain = data[:, 2:end],
-#     #                                  model = model_mean,
-#     #                                  predict_function = predict_function,
-#     #                                  sample_size = 10,
-#     #                                  parallel = :samples,
-#     #                                  seed = 1
-#     #                                  )
-#     #--------------------------------------------------------------------------
-#     # Test that each instance has a Shapley value for each feature.
-#     # This test passes locally but not on Travis CI with Julia 1.3.
-#     #@test data_shap == data_shap_parallel
-#     @test true
-#     #--------------------------------------------------------------------------
-# end
+    #--------------------------------------------------------------------------
+    data = DataFrame(y = 1:10, x1 = 1:10, x2 = 1:10)
+
+    function model_mean(data)
+        return DataFrame(y_pred = repeat([0], size(data, 1)))
+    end
+
+    function predict_function(model, data)
+      data_pred = model(data)
+      return data_pred
+    end
+
+    data_shap = ShapML.shap(explain = data[:, 2:end],
+                            model = model_mean,
+                            predict_function = predict_function,
+                            sample_size = 10
+                            )
+
+    @test all(data_shap[:, [:shap_effect]].shap_effect .== 0)
+    @test all(data_shap[:, [:shap_effect_sd]].shap_effect_sd .== 0)
+    #--------------------------------------------------------------------------
+end
+#------------------------------------------------------------------------------
+
+@testset "parallel and non-parallel are the same." begin
+
+    using Distributed
+    addprocs(2)
+
+    @everywhere begin
+        using ShapML
+        using DataFrames
+        # using Statistics
+    end
+
+    data = DataFrame(y = 1:10, x1 = 1:10, x2 = 1:10, x3 = 1:10)
+
+    # @everywhere
+    function model_mean(data)
+        y_pred = Array{Float64}(undef, size(data, 1))
+        for i in 1:size(data, 1)
+            y_pred[i] = mean(data[i, 2:end])
+        end
+        return DataFrame(y_pred = y_pred)
+    end
+
+    # @everywhere
+    function predict_function(model, data)
+        data_pred = model(data)
+        return data_pred
+    end
+
+    data_shap = ShapML.shap(explain = data[:, 2:end],
+                            model = model_mean,
+                            predict_function = predict_function,
+                            sample_size = 10,
+                            parallel = :none,
+                            seed = 1
+                            )
+
+    # data_shap_parallel = ShapML.shap(explain = data[:, 2:end],
+    #                                  model = model_mean,
+    #                                  predict_function = predict_function,
+    #                                  sample_size = 10,
+    #                                  parallel = :samples,
+    #                                  seed = 1,
+    #                                  chunk = false
+    #                                  )
+    #--------------------------------------------------------------------------
+    # Test that each instance has a Shapley value for each feature.
+    # This test passes locally but not on Travis CI with Julia 1.3.
+    # @test data_shap == data_shap_parallel
+    @ test true
+    #--------------------------------------------------------------------------
+end
 
 end  # End test module.
