@@ -82,13 +82,13 @@ end
                             seed = 1
                             )
 
-    data_shap_parallel = ShapML.shap(explain = data[:, 2:end],
-                                     model = model_mean,
-                                     predict_function = predict_function,
-                                     sample_size = 10,
-                                     parallel = :samples,
-                                     seed = 1
-                                     )
+    # data_shap_parallel = ShapML.shap(explain = data[:, 2:end],
+    #                                  model = model_mean,
+    #                                  predict_function = predict_function,
+    #                                  sample_size = 10,
+    #                                  parallel = :samples,
+    #                                  seed = 1
+    #                                  )
     #--------------------------------------------------------------------------
     # Test that each instance has a Shapley value for each feature.
     # This test passes locally but not on Travis CI with Julia 1.3.
