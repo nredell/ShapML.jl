@@ -42,7 +42,7 @@ Pkg.add(PackageSpec(url = "https://github.com/nredell/ShapML.jl"))
 
 * **[Consistency with TreeSHAP](https://nredell.github.io/ShapML.jl/dev/vignettes/consistency/)**
 
-* **[Speed - Julia vs Python vs R](https://nredell.github.io/data_science_blog/julia_vs_r_speed_sim.nb.html)**
+* **[Speed - Julia vs Python vs R](https://nredell.github.io/docs/julia_speed)**
 
 ## Examples
 
