@@ -23,11 +23,13 @@ using Pkg
 Pkg.add("ShapML")
 ```
 
-
-## Documentation
+## Documentation and Vignettes
 
 * **[Docs](https://nredell.github.io/ShapML.jl/dev/)**
 
+* **[Consistency with TreeSHAP](https://nredell.github.io/ShapML.jl/dev/vignettes/consistency/)**
+
+* **[Speed - Julia vs Python vs R](https://nredell.github.io/docs/julia_speed)**
 
 ## Examples
 
