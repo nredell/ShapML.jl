@@ -1,4 +1,4 @@
-# _group_by() is a custom function that aggregates the Shapley values in _predict() by exploiting the
+# _aggregate() is a custom function that aggregates the Shapley values in _predict() by exploiting the
 # known structure of 'data_predicted'. It is both quicker and more memory efficient than
 # the equivalent code below:
 
@@ -7,7 +7,8 @@
 #               shap_effect = :shap_effect => x -> Statistics.mean(x))
 using Statistics
 
-function _aggregate(data_predicted::DataFrame, sample_size::Integer, n_instances_explain::Integer, n_target_features::Integer)
+function _aggregate(data_predicted::DataFrame, sample_size::Integer, n_instances_explain::Integer,
+                    n_target_features::Integer, reconcile_instance::Bool)
 
   feature_name = repeat(data_predicted.feature_name[1:n_target_features], outer = n_instances_explain)
   index = repeat(1:n_instances_explain, inner = n_target_features)
@@ -20,17 +21,38 @@ function _aggregate(data_predicted::DataFrame, sample_size::Integer, n_instances
 
   shap_effect_instance_feature = [Array{Any}(undef, n_target_features) for i in 1:n_instances_explain]
   shap_effect_instances = Array{Any}(undef, n_instances_explain)
-  for i in 1:n_instances_explain
-    for j in 1:n_target_features
-      shap_effect_instance_feature[i][j] = reshape([Statistics.mean(data_predicted[indices_list[i][j], :shap_effect]), Statistics.std(data_predicted[indices_list[i][j], :shap_effect])], 1, 2)
-    end
-    shap_effect_instances[i] = vcat(shap_effect_instance_feature[i]...)
+
+  if reconcile_instance
+
+     for i in 1:n_instances_explain
+      for j in 1:n_target_features
+        shap_effect_instance_feature[i][j] = reshape([Statistics.mean(data_predicted[indices_list[i][j], :shap_effect]),
+                                                      Statistics.std(data_predicted[indices_list[i][j], :shap_effect]),
+                                                      Statistics.var(data_predicted[indices_list[i][j], :shap_effect])], 1, 3)
+      end
+      shap_effect_instances[i] = vcat(shap_effect_instance_feature[i]...)
+     end
+
+  else
+
+     for i in 1:n_instances_explain
+      for j in 1:n_target_features
+        shap_effect_instance_feature[i][j] = reshape([Statistics.mean(data_predicted[indices_list[i][j], :shap_effect]), Statistics.std(data_predicted[indices_list[i][j], :shap_effect])], 1, 2)
+      end
+      shap_effect_instances[i] = vcat(shap_effect_instance_feature[i]...)
+     end
   end
 
   data_predicted = DataFrames.DataFrame(vcat(shap_effect_instances...))
-  rename!(data_predicted, [:shap_effect, :shap_effect_sd])
+
+  if reconcile_instance
+     rename!(data_predicted, [:shap_effect, :shap_effect_sd, :shap_effect_var])
+  else
+     rename!(data_predicted, [:shap_effect, :shap_effect_sd])
+  end
+
   data_predicted.index = index
   data_predicted.feature_name = feature_name
 
   return data_predicted
-end  # End _group_by().
+end  # End _aggregate().

@@ -20,7 +20,8 @@ export shap
          parallel::Symbol = [:none, :samples, :features, :both],
          seed::Integer = 1,
          precision::Union{Integer, Nothing} = nothing,
-         chunk::Bool = true
+         chunk::Bool = true,
+         reconcile_instance::Bool = false
          )
 
 Compute stochastic feature-level Shapley values for any ML model.
@@ -36,6 +37,7 @@ Compute stochastic feature-level Shapley values for any ML model.
 - `seed::Integer`: A number passed to `Random.seed!()` to get reproducible results.
 - `precision::Union{Integer, Nothing}`: The number of digits to `round()` results in the ouput (to reduce the size of the returned DataFrame).
 - `chunk::Bool`: Default `true`. Increases speed on data with many instances and/or features. Calls the `predict()` function once per sample in `sample_size` instead of once per call to `ShapML.shap()`.
+- `reconcile_instance`: EXPERIMENTAL. For each instance in `explain`, the stochastic feature-level Shapley values are adjusted so that their sum equals the model prediction. The adjustments are based on feature-level sampling variances and are typically small compared to the model prediction.
 
 # Return
 - A `size(explain, 1)` * `length(target_features)` row by 6 column DataFrame.
@@ -55,7 +57,8 @@ function shap(;explain::DataFrame,
               parallel::Union{Symbol, Nothing} = nothing,
               seed::Integer = 1,
               precision::Union{Integer, Nothing} = nothing,
-              chunk::Bool = true
+              chunk::Bool = true,
+              reconcile_instance::Bool = false
               )
 
     feature_names = String.(names(explain))
@@ -171,10 +174,12 @@ function shap(;explain::DataFrame,
                          n_instances_explain = n_instances_explain,  # Calculated.
                          sample_size = sample_size,  # input arg.
                          precision = precision,  # input arg.
-                         chunk = chunk  # input arg.
+                         chunk = chunk,  # input arg.
+                         reconcile_instance = reconcile_instance,  # input arg.
+                         explain = explain  # input arg; needed if reconcile_instance = true.
                          )
     #--------------------------------------------------------------------------
-    # Melt the input 'explain' data.frame for merging the model features to the Shapley values.
+    # Melt the input 'explain' DataFrame for merging the model features to the Shapley values.
     data_merge = DataFrames.stack(explain, feature_names_symbol)
     rename!(data_merge, Dict(:variable => "feature_name", :value => "feature_value"))
     data_merge.feature_name = String.(data_merge.feature_name)  # Coerce for merging.
