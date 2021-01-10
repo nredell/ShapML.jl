@@ -54,12 +54,13 @@ function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict
 
     data_model_pred[:, :index] .= 1:n_instances_explain
 
-    data_predicted = join(data_predicted, data_model_pred, on = [:index], kind = :left)
-
+    # data_predicted = join(data_predicted, data_model_pred, on = [:index], kind = :left)
+    data_predicted = leftjoin(data_predicted, data_model_pred, on = [:index])
     data_shap_pred = DataFrames.by(data_predicted, [:index], shap_pred = :shap_effect => x -> sum(x))
     data_shap_pred.shap_pred .= data_shap_pred.shap_pred .+ intercept
 
-    data_predicted = join(data_predicted, data_shap_pred, on = [:index], kind = :left)
+    # data_predicted = join(data_predicted, data_shap_pred, on = [:index], kind = :left)
+    data_predicted = leftjoin(data_predicted, data_shap_pred, on = [:index])
 
     data_predicted[:, :residual] = data_predicted.model_pred - data_predicted.shap_pred
 
@@ -69,7 +70,8 @@ function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict
 
     data_scale = DataFrames.by(data_predicted, [:index], variance_scale_total = :variance_scale => x -> sum(x))
 
-    data_predicted = join(data_predicted, data_scale, on = [:index], kind = :left)
+    # data_predicted = join(data_predicted, data_scale, on = [:index], kind = :left)
+    data_predicted = leftjoin(data_predicted, data_scale, on = [:index])
 
     data_predicted[:, :shap_effect] = data_predicted.shap_effect .+ (data_predicted.residual .* (data_predicted.variance_scale .- (data_predicted.variance_scale .* data_predicted.variance_scale_total) ./
                                                                  (1 .+ data_predicted.variance_scale_total)))
