@@ -187,7 +187,7 @@ function shap(;explain::DataFrame,
     data_merge.index = repeat(1:n_instances_explain, n_features)  # The merge index for each instance.
 
     # Each instance in explain has one Shapley value per instance in a long DataFrame format.
-    data_shap = join(data_shap, data_merge, on = [:index, :feature_name], kind = :left)
+    data_shap = leftjoin(data_shap, data_merge, on = [:index, :feature_name])
 
     # Re-order columns for easier reading.
     DataFrames.select!(data_shap, [:index, :feature_name, :feature_value, :shap_effect, :shap_effect_sd, :intercept])
