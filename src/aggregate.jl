@@ -10,13 +10,15 @@ using Statistics
 function _aggregate(data_predicted::DataFrame, sample_size::Integer, n_instances_explain::Integer,
                     n_target_features::Integer, reconcile_instance::Bool)
 
-  feature_name = repeat(data_predicted.feature_name[1:n_target_features], outer = n_instances_explain)
+  feature_name = repeat(unique(data_predicted.feature_name)[1:n_target_features], outer = n_instances_explain)
   index = repeat(1:n_instances_explain, inner = n_target_features)
 
-  indices = map(i -> i * (n_target_features * sample_size), vcat([0], collect(1:(n_instances_explain - 1))))
+  #indices = map(i -> i * (n_target_features * sample_size), vcat([0], collect(1:(n_instances_explain - 1))))
   indices_list = Array{Any}(undef, n_instances_explain)
   for i in 1:n_instances_explain
-     indices_list[i] = map(j -> (j + indices[i]):n_target_features:((n_target_features * sample_size + j - 1) + indices[i]), 1:n_target_features)
+     #indices_list[i] = map(j -> (j + indices[i]):n_target_features:((n_target_features * sample_size + j - 1) + indices[i]), 1:n_target_features)
+     indices_list[i] = map(j -> (i + (j - 1) * n_instances_explain) : (n_target_features * sample_size) : ((n_target_features * sample_size * n_instances_explain) + 
+     (j - 1) * n_instances_explain), 1:n_target_features)
   end
 
   shap_effect_instance_feature = [Array{Any}(undef, n_target_features) for i in 1:n_instances_explain]
@@ -43,7 +45,7 @@ function _aggregate(data_predicted::DataFrame, sample_size::Integer, n_instances
      end
   end
 
-  data_predicted = DataFrames.DataFrame(vcat(shap_effect_instances...))
+  data_predicted = DataFrames.DataFrame(vcat(shap_effect_instances...), :auto)
 
   if reconcile_instance
      rename!(data_predicted, [:shap_effect, :shap_effect_sd, :shap_effect_var])
