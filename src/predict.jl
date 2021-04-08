@@ -56,7 +56,7 @@ function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict
 
     # data_predicted = join(data_predicted, data_model_pred, on = [:index], kind = :left)
     data_predicted = leftjoin(data_predicted, data_model_pred, on = [:index])
-    data_shap_pred = DataFrames.by(data_predicted, [:index], shap_pred = :shap_effect => x -> sum(x))
+    data_shap_pred = DataFrames.combine(DataFrames.groupby(data_predicted, [:index]), :shap_effect => (x -> sum(x)) => :shap_pred)
     data_shap_pred.shap_pred .= data_shap_pred.shap_pred .+ intercept
 
     # data_predicted = join(data_predicted, data_shap_pred, on = [:index], kind = :left)
@@ -64,11 +64,11 @@ function _predict(;reference::DataFrame, data_predict::DataFrame, model, predict
 
     data_predicted[:, :residual] = data_predicted.model_pred - data_predicted.shap_pred
 
-    data_scale = DataFrames.by(data_predicted, [:index], variance_scale = :shap_effect_var => x -> x / maximum(x))
+    data_scale = DataFrames.combine(DataFrames.groupby(data_predicted, [:index]), :shap_effect_var => (x -> x / maximum(x)) => :variance_scale)
 
     data_predicted[:, :variance_scale] .= data_scale.variance_scale
 
-    data_scale = DataFrames.by(data_predicted, [:index], variance_scale_total = :variance_scale => x -> sum(x))
+    data_scale = DataFrames.combine(DataFrames.groupby(data_predicted, [:index]), :variance_scale => (x -> sum(x)) => :variance_scale_total)
 
     # data_predicted = join(data_predicted, data_scale, on = [:index], kind = :left)
     data_predicted = leftjoin(data_predicted, data_scale, on = [:index])
