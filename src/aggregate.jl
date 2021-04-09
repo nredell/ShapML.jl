@@ -17,8 +17,8 @@ function _aggregate(data_predicted::DataFrame, sample_size::Integer, n_instances
   indices_list = Array{Any}(undef, n_instances_explain)
   for i in 1:n_instances_explain
      #indices_list[i] = map(j -> (j + indices[i]):n_target_features:((n_target_features * sample_size + j - 1) + indices[i]), 1:n_target_features)
-     indices_list[i] = map(j -> (i + (j - 1) * n_instances_explain) : (n_target_features * sample_size) : ((n_target_features * sample_size * n_instances_explain) + 
-     (j - 1) * n_instances_explain), 1:n_target_features)
+     indices_list[i] = map(j -> (i + (j - 1) * n_instances_explain):(n_target_features * n_instances_explain) : 
+     ((n_target_features * sample_size * n_instances_explain) + (j - 1) * n_instances_explain), 1:n_target_features)
   end
 
   shap_effect_instance_feature = [Array{Any}(undef, n_target_features) for i in 1:n_instances_explain]
