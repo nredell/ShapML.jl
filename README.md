@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/nredell/ShapML.jl.svg?branch=master)](https://travis-ci.org/nredell/ShapML.jl)
+[![Build Status](https://github.com/nredell/ShapML.jl/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nredell/ShapML.jl/actions/workflows/ci.yml?query=branch%3Amain)
 [![Codecov](https://codecov.io/gh/nredell/ShapML.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nredell/ShapML.jl)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://nredell.github.io/ShapML.jl/dev)
 
