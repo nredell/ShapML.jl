@@ -1,9 +1,14 @@
-using Documenter, ShapML
+using ShapML
+using Documenter
+
+DocMeta.setdocmeta!(
+    ShapML, :DocTestSetup, :(using ShapML); recursive=true
+)
 
 makedocs(
     sitename = "ShapML",
     authors = "Nickalus Redell",
-    doctest = false,
+    doctest = true,
     format = Documenter.HTML(
         highlights = ["yaml"]
         ),
@@ -15,5 +20,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/nredell/ShapML.jl.git"
+    repo = "github.com/nredell/ShapML.jl",
+    devbranch="master",
 )
