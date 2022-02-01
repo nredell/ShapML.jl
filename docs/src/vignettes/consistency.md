@@ -69,7 +69,7 @@ library(catboost)  # version 0.20
 
 ### Julia
 
-``` jldoctest
+```julia
 using ShapML
 using Random
 using DataFrames
@@ -150,7 +150,7 @@ predict_function <- function(model, data) {
 -   In `Julia`, convert the input data, the trained model, and the
     `predict()` function into `Julia` objects.
 
-``` jldoctest
+```julia
 data = RCall.reval("data")
 data = convert(DataFrame, data)
 
@@ -165,7 +165,7 @@ predict_function = convert(Function, predict_function)
 
 #### ShapML.shap
 
-``` jldoctest
+```julia
 explain = copy(data[1:300, :])  # Compute Shapley feature-level predictions for all instances.
 explain = select(explain, Not(Symbol(outcome_name)))  # Remove the outcome column.
 

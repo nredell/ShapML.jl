@@ -18,7 +18,7 @@ to compute the stochastic Shapley values for a given instance and model feature.
 
 ## Install
 
-``` jldoctest
+```julia
 using Pkg
 Pkg.add("ShapML")
 ```
@@ -39,12 +39,11 @@ Pkg.add("ShapML")
 
 * We'll explain a subset of 300 instances and then assess global feature importance by aggregating the unique feature importances for each of these instances.
 
-``` jldoctest
+``` @example serial
 using ShapML
 using RDatasets
 using DataFrames
 using MLJ  # Machine learning
-using Gadfly  # Plotting
 
 # Load data.
 boston = RDatasets.dataset("MASS", "Boston")
@@ -53,14 +52,15 @@ boston = RDatasets.dataset("MASS", "Boston")
 outcome_name = "MedV"
 
 # Data prep.
-y, X = MLJ.unpack(boston, ==(Symbol(outcome_name)), colname -> true)
+y, X = MLJ.unpack(boston, ==(Symbol(outcome_name)))
 
 # Instantiate an ML model; choose any single-outcome ML model from any package.
-random_forest = @load RandomForestRegressor pkg = "DecisionTree"
+RandomForest = @load RandomForestRegressor pkg=DecisionTree verbosity=0
+random_forest = RandomForest(rng=123)
 model = MLJ.machine(random_forest, X, y)
 
 # Train the model.
-fit!(model)
+fit!(model, verbosity=0)
 
 # Create a wrapper function that takes the following positional arguments: (1) a
 # trained ML model from any Julia package, (2) a DataFrame of model features. The
@@ -89,15 +89,17 @@ data_shap = ShapML.shap(explain = explain,
                         )
 
 show(data_shap, allcols = true)
+
 ```
-![shapoutput](shapoutput.PNG)
 
 * Now we'll create several plots that summarize the Shapley results for our Random Forest model. These plots will eventually be refined and incorporated into `ShapML`.
 
 * **Global feature importance**
     + Because Shapley values represent deviations from the average or baseline prediction, plotting their average absolute value for each feature gives a sense of the magnitude with which they affect model predictions across all explained instances.
 
-``` jldoctest
+```julia
+using Gadfly  # Plotting
+
 data_plot = DataFrames.by(data_shap, [:feature_name],
                           mean_effect = [:shap_effect] => x -> mean(abs.(x.shap_effect)))
 
@@ -118,7 +120,7 @@ p
 * **Global feature effects**
     + The plot below shows how changing the value of the `Rm` feature--the most influential feature overall--affects model predictions (holding the other features constant). Each point represents 1 of our 300 explained instances. The black line is a loess line of best fit to summarize the effect.
 
-``` jldoctest
+```julia
 data_plot = data_shap[data_shap.feature_name .== "Rm", :]  # Selecting 1 feature for ease of plotting.
 
 baseline = round(data_shap.intercept[1], digits = 1)
@@ -138,26 +140,22 @@ p
 
 * We'll explain the same dataset with the same model, but this time we'll compute the Shapley values in parallel across cores using the built-in distributed computing in `ShapML` which implements `Distributed.pmap()` internally.
 
-* The stochastic Shapley values will be computed in parallel over 6 cores on the same machine.
+* The stochastic Shapley values will be computed in parallel over all available cores on the same machine. The `exeflags` option ensures your package enviroment is inherited by the new cores made available by the `addprocs` call.
 
 * With the same seed set, **non-parallel and parallel computation will return the same results**.
 
-``` jldoctest
+* We wrap each `using` call in an `@everywhere` to make packages available to all cores.  If you use another ML package, you would swap it in for `using MLJ`.
+
+```@example parallel
 using Distributed
-addprocs(6)  # 6 cores.
-```
+addprocs(exeflags="--project=$(Base.active_project())")
 
-* The `@everywhere` block of code will load the relevant packages on each core. If you use another ML package, you would swap it in for `using MLJ`.
-
-``` jldoctest
 @everywhere begin
   using ShapML
   using DataFrames
   using MLJ
 end
-```
 
-``` jldoctest
 using RDatasets
 
 # Load data.
@@ -167,10 +165,11 @@ boston = RDatasets.dataset("MASS", "Boston")
 outcome_name = "MedV"
 
 # Data prep.
-y, X = MLJ.unpack(boston, ==(Symbol(outcome_name)), colname -> true)
+y, X = MLJ.unpack(boston, ==(Symbol(outcome_name)))
 
 # Instantiate an ML model; choose any single-outcome ML model from any package.
-random_forest = @load RandomForestRegressor pkg = "DecisionTree"
+RandomForest = @load RandomForestRegressor pkg=DecisionTree verbosity=0
+random_forest = RandomForest()
 model = MLJ.machine(random_forest, X, y)
 
 # Train the model.
@@ -179,7 +178,7 @@ fit!(model)
 
 * `@everywhere` is needed to properly initialize the `predict()` wrapper function.
 
-``` jldoctest
+```julia
 # Create a wrapper function that takes the following positional arguments: (1) a
 # trained ML model from any Julia package, (2) a DataFrame of model features. The
 # function should return a 1-column DataFrame of predictions--column names do not matter.
@@ -191,7 +190,7 @@ end
 
 * Notice that we've set `ShapML.shap(parallel = :samples)` to perform the computation in parallel across our 60 Monte Carlo samples.
 
-``` jldoctest
+```julia
 # ShapML setup.
 explain = copy(boston[1:300, :]) # Compute Shapley feature-level predictions for 300 instances.
 explain = select(explain, Not(Symbol(outcome_name)))  # Remove the outcome column.
@@ -213,4 +212,4 @@ data_shap = ShapML.shap(explain = explain,
 
 show(data_shap, allcols = true)
 ```
-![shapoutput](shapoutput.PNG)
+
