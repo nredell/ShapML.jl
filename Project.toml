@@ -2,7 +2,7 @@ name = "ShapML"
 uuid = "8523bd24-6f66-414b-9e1e-b02db3916d64"
 repo = "https://github.com/nredell/ShapML.jl.git"
 authors = ["Nickalus Redell"]
-version = "0.3.1"
+version = "0.3.2"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
